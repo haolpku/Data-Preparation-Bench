@@ -1,0 +1,79 @@
+- source: c4
+  steps:
+  - func: move_url_modifier
+  - func: key_name_modifier
+  - func: page_length_filter
+    length_type: char
+    max_length: 190000
+  - func: word_length_modifier
+    max_length: 1000
+    model: split
+  - func: citation_removal_modifier
+  - func: punctuation_line_modifier
+    remove_ellipses: true
+  - func: line_length_modifier
+    min_length: 5
+  - banlist:
+    - lorem ipsum
+    func: substring_filter
+  - banlist:
+    - javascript
+    func: substring_line_modifier
+  - banlist:
+    - '{'
+    func: substring_filter
+  - banlist:
+    - terms of use
+    - privacy policy
+    - cookie policy
+    - uses cookies
+    - use of cookies
+    - use cookies
+    func: substring_line_modifier
+  - func: page_length_filter
+    length_type: sentence
+    min_length: 3
+    tokenizer: nltk
+    tokenizer_lang: english
+  - delimiter: '
+
+      '
+    func: split_lines_modifier
+  - content_key: url
+    func: exact_dedup
+    normalize: normalize_url
+  - content_key: text
+    func: exact_dedup
+    normalize: normalize_whitespace_and_lowercase
+    selection_key: url
+    selection_normalize: hash_text
+  - delimiter: '
+
+      '
+    func: join_lines_modifier
+  - func: within_page_dedup
+    granularity: line
+    normalize: true
+  - func: page_length_filter
+    length_type: sentence
+    min_length: 3
+    tokenizer: nltk
+    tokenizer_lang: english
+  - banlist_from_fname: baselines/mappers/banlists/ldnoobw.txt
+    exact_word: true
+    func: substring_filter
+  - _aggregate:
+      language_id_whole_page_langdetect:
+        default: unknown
+        threshold: 0.99
+        transform: threshold_transform
+        type: histogram
+    func: detect_lang_whole_page_enricher
+    key_prefix: language_id_whole_page
+    model: langdetect
+    seed: 0
+  - func: language_filter
+    keep_languages:
+    - en
+    key: language_id_whole_page_langdetect
+    threshold: 0.99
