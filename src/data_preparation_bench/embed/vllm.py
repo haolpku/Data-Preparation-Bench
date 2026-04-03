@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import asyncio
 from typing import TYPE_CHECKING, override
 
 from vllm.inputs.data import TokensPrompt
@@ -75,7 +74,7 @@ class VllmEmbed(BaseEmbed):
         return self._tokenizer
 
     @override
-    async def embed(self, dataset: list[EmbeddingInputItem]) -> list[EmbeddingResult]:
+    def embed(self, dataset: list[EmbeddingInputItem]) -> list[EmbeddingResult]:
         """异步执行嵌入计算.
 
         Args:
@@ -116,9 +115,7 @@ class VllmEmbed(BaseEmbed):
         logger.info("开始模型推理...")
         with timing_context("模型推理"):
             # vLLM 的 embed 是同步方法，使用 to_thread 在后台线程执行
-            outputs = await asyncio.to_thread(
-                self.model.embed, converted_input, use_tqdm=True
-            )
+            outputs = self.model.embed(converted_input, use_tqdm=True)
         logger.info(f"嵌入计算完成，输出 {len(outputs)} 条结果")
         return [
             EmbeddingResult(

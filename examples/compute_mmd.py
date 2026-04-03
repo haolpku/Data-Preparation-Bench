@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import argparse
-import asyncio
 import json
 import os
 import time
@@ -71,8 +70,19 @@ def save_json(data: dict[str, Any], path: str) -> None:
 # ==================== 主函数 ====================
 
 
-async def main_async(output_dir: str | None) -> None:
-    """异步主函数."""
+def main() -> None:
+    """程序入口点."""
+    parser = argparse.ArgumentParser(description="计算两个数据集之间的 MMD 距离")
+    parser.add_argument(
+        "--output",
+        type=str,
+        default=None,
+        help="输出目录路径",
+    )
+    args = parser.parse_args()
+
+    output_dir: str | None = args.output
+
     logger.info("=" * 60)
     logger.info("MMD 距离计算任务启动")
     logger.info("=" * 60)
@@ -128,7 +138,7 @@ async def main_async(output_dir: str | None) -> None:
     logger.info(f"开始计算 MMD 距离: {ds1_name} vs {ds2_name}")
     print(f"Computing MMD distance: {ds1_name} vs {ds2_name}...")
 
-    results = await distance.async_compute(ds1_items, ds2_items)
+    results = distance.compute(ds1_items, ds2_items)
     mmd_value = results[0].value
 
     logger.info(f"MMD 距离计算完成: {mmd_value:.6f}")
@@ -181,20 +191,6 @@ async def main_async(output_dir: str | None) -> None:
         print(f"Results saved to: {output_path}")
 
     logger.info("MMD 距离计算任务完成")
-
-
-def main() -> None:
-    """程序入口点."""
-    parser = argparse.ArgumentParser(description="计算两个数据集之间的 MMD 距离")
-    parser.add_argument(
-        "--output",
-        type=str,
-        default=None,
-        help="输出目录路径",
-    )
-    args = parser.parse_args()
-
-    asyncio.run(main_async(args.output))
 
 
 if __name__ == "__main__":

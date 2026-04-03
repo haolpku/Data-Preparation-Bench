@@ -1,6 +1,7 @@
 import asyncio
 import hashlib
 import json
+from collections.abc import Coroutine
 from typing import Any, cast
 
 from redis.asyncio import Redis
@@ -135,7 +136,7 @@ class CachedEmbed(BaseEmbed):
                 logger.warning(f"Redis 缓存写入失败: {e}")
                 return False
 
-    async def embed(self, dataset: list[EmbeddingInputItem]) -> list[EmbeddingResult]:
+    def embed(self, dataset: list[EmbeddingInputItem]) -> list[EmbeddingResult]:
         """异步执行嵌入计算，使用 Redis 缓存.
 
         Args:
@@ -149,7 +150,11 @@ class CachedEmbed(BaseEmbed):
         # 并发查询所有缓存（受 semaphore 限制并发量）
         cache_keys = [self._build_cache_key(item) for item in dataset]
         cache_tasks = [self._get_cached(key) for key in cache_keys]
-        cached_values = await asyncio.gather(*cache_tasks, return_exceptions=True)
+
+        async def _run_all_get_cache() -> list[dict[str, Any] | None | BaseException]:
+            return await asyncio.gather(*cache_tasks, return_exceptions=True)
+
+        cached_values = asyncio.run(_run_all_get_cache())
 
         # 分离缓存命中和未命中的项
         results: list[EmbeddingResult | None] = [None] * len(dataset)
@@ -187,10 +192,10 @@ class CachedEmbed(BaseEmbed):
 
         # 计算未缓存的嵌入
         if missing_items:
-            new_results = await self.embedder.embed(missing_items)
+            new_results = self.embedder.embed(missing_items)
 
             # 并发写入缓存（受 semaphore 限制并发量）
-            write_tasks = []
+            write_tasks: list[Coroutine[Any, Any, bool]] = []
             for key, idx, result in zip(missing_keys, missing_indices, new_results):
                 cache_value = {
                     "embedding": result.embedding,
@@ -204,7 +209,10 @@ class CachedEmbed(BaseEmbed):
                 )
 
             # 等待所有写入完成
-            write_results = await asyncio.gather(*write_tasks, return_exceptions=True)
+            async def _run_all_save_cache() -> list[bool | BaseException]:
+                return await asyncio.gather(*write_tasks, return_exceptions=False)
+
+            write_results = asyncio.run(_run_all_save_cache())
             success_count = sum(1 for r in write_results if r is True)
             logger.info(f"缓存写入完成: {success_count}/{len(write_tasks)} 成功")
 
