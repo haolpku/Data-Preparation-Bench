@@ -44,8 +44,8 @@ def main() -> None:
         json.dump(records, fp, ensure_ascii=False, indent=2)
 
     print(
-        f"已导出 {len(records)} 道 bool 题目到 {output_path}. "
-        f"数据源：{dataset_path}"
+        f"Exported {len(records)} bool questions to {output_path}. "
+        f"Source: {dataset_path}"
     )
 
 

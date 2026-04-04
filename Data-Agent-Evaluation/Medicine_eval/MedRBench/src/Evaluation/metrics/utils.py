@@ -4,14 +4,14 @@ import re
 import json
 from typing import List, Optional
 
-# ==================== 全局变量设置区 ====================
+# ========================================================
 NEW_API_KEY = "sk-dummy"
 NEW_BASE_URL = "http://XXX/v1"
 NEW_MODEL_NAME = "gpt-4o"
 IS_FULL_EVAL = False 
-REFER_MODEL_NAME = "gpt-4o"                                            #评分模型名称
-REFER_API_BASE_URL = "http://XXX/v1"                  #评分模型API_URL
-REFER_API_KEY = "sk-dummy"  #评分模型API_KEY
+REFER_MODEL_NAME = "gpt-4o"                                            
+REFER_API_BASE_URL = "http://XXX/v1"                  
+REFER_API_KEY = "sk-dummy"  
 # ========================================================
 
 def workflow(model_name, instruction, input_text):

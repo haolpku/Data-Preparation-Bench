@@ -120,11 +120,11 @@ def _fetch_page_content(url, screenshot=False):
         # options.add_argument("--no-sandbox")  # This is helpful in certain environments (e.g., Docker)
         # options.add_argument("--disable-dev-shm-usage")  # Helps in environments with limited shared memory
         options.add_argument(f'user-agent={headers["User-Agent"]}')
-        # 忽略证书错误
+  
         options.add_argument('--ignore-certificate-errors')
-        # 忽略 Bluetooth: bluetooth_adapter_winrt.cc:1075 Getting Default Adapter failed. 错误
+
         options.add_experimental_option('excludeSwitches', ['enable-automation'])
-        # 忽略 DevTools listening on ws://127.0.0.1... 提示
+
         options.add_experimental_option('excludeSwitches', ['enable-logging'])
 
         # service = Service(SERVICE_PATH)  # Update with the path to your chromedriver
@@ -200,26 +200,23 @@ def GoogleSearchTool(query: str, read_content: bool = True, search_num: int = 5,
     
     try:
 
-        # 设置你的 API 密钥和自定义搜索引擎 ID
+
         api_key = GOOGLE_API
         search_engine_id = SEARCH_ID
 
-        # 构建 API 请求的 URL
         url = f'https://www.googleapis.com/customsearch/v1'
 
-        # 定义查询参数
         params = {
-            'key': api_key,  # API 密钥
-            'cx': search_engine_id,  # 自定义搜索引擎 ID
-            'q': query,  # 你要搜索的关键词
-            'num': search_num  # 返回结果的数量
+            'key': api_key,  
+            'cx': search_engine_id,  
+            'q': query,  
+            'num': search_num  
         }
 
-        # 发送 GET 请求
+  
         response = requests.get(url, params=params)
         search_results = []
 
-        # 如果请求成功，解析并显示搜索结果
         if response.status_code == 200:
             results = response.json()
             for i, item in enumerate(results.get('items', []), start=1):

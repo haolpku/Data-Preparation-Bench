@@ -12,14 +12,14 @@ from eval_metrics import resp2ans
 from load_models import build_model
 
 
-# ==================== 全局变量设置区 ====================
+# ========================================================
 NEW_API_KEY = "sk-dummy"
 NEW_BASE_URL = "http://XXX/v1"
 NEW_MODEL_NAME = "gpt-4o"
 IS_FULL_EVAL = False 
-REFER_MODEL_NAME = "gpt-4o"                                            #评分模型名称
-REFER_API_BASE_URL = "http://XXX/v1"                  #评分模型API_URL
-REFER_API_KEY = "sk-dummy"  #评分模型API_KEY
+REFER_MODEL_NAME = "gpt-4o"                                           
+REFER_API_BASE_URL = "http://XXX/v1"                  
+REFER_API_KEY = "sk-dummy" 
 # ========================================================
 
 
@@ -71,8 +71,8 @@ def load_bool_dataset() -> pd.DataFrame:
     df = pd.read_csv(DATASET_FILE)
     df = df[df["task"] == "bool"].copy()
     df["ground_truth_norm"] = df["ground_truth"].apply(normalize_ground_truth)
-    df = df.dropna(subset=["ground_truth_norm"])  # type: ignore[arg-type]
-    df = df[df["figure"].isna()]  # 跳过图文混合题
+    df = df.dropna(subset=["ground_truth_norm"])  
+    df = df[df["figure"].isna()]  
     if not IS_FULL_EVAL:
         df = df.head(min(SAMPLE_SIZE, len(df)))
     return df
@@ -121,7 +121,7 @@ def evaluate_row(model: build_model, template: str, row: pd.Series) -> Dict[str,
         )
         record["llm_response"] = response
         record["token_usage"] = token_usage
-    except Exception as exc:  # pragma: no cover - 网络调用异常
+    except Exception as exc:  
         record["error"] = str(exc)
         return record
 
@@ -139,7 +139,7 @@ def run_evaluation() -> Dict[str, Any]:
     ensure_directories()
     dataset = load_bool_dataset()
     if dataset.empty:
-        raise RuntimeError("未找到可用的 bool 题目数据。")
+        raise RuntimeError("Not Find bool data。")
 
     prompt_template = load_prompt_template()
     model = build_model(NEW_MODEL_NAME)
@@ -149,7 +149,7 @@ def run_evaluation() -> Dict[str, Any]:
     progress_lock = Lock()
     completed = 0
 
-    print(f"开始评测：模型={NEW_MODEL_NAME}, 题目数量={len(rows)}, 并发数={MAX_WORKERS}")
+    print(f"Start：Model ={NEW_MODEL_NAME}, num ={len(rows)}, Workers ={MAX_WORKERS}")
 
     with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
         future_map = {
@@ -160,7 +160,7 @@ def run_evaluation() -> Dict[str, Any]:
             idx = future_map[future]
             try:
                 results[idx] = future.result()
-            except Exception as exc:  # pragma: no cover
+            except Exception as exc:  
                 results[idx] = {
                     "id": rows[idx].get("id", ""),
                     "question": rows[idx].get("question", ""),
@@ -175,10 +175,10 @@ def run_evaluation() -> Dict[str, Any]:
             finally:
                 with progress_lock:
                     completed += 1
-                    display_progress("评测进度", completed, len(rows))
+                    display_progress("Processing", completed, len(rows))
 
-    # 填补 None（理论上不会出现）
-    filled_results: List[Dict[str, Any]] = [r for r in results if r is not None]  # type: ignore[arg-type]
+
+    filled_results: List[Dict[str, Any]] = [r for r in results if r is not None]  
     correct_count = sum(1 for item in filled_results if item.get("is_correct"))
     total = len(filled_results)
     accuracy = correct_count / total if total else 0.0
@@ -198,7 +198,7 @@ def run_evaluation() -> Dict[str, Any]:
     with open(save_path, "w", encoding="utf-8") as fp:
         json.dump(payload, fp, ensure_ascii=False, indent=2)
 
-    print(f"评测完成，准确率={accuracy:.4f}，结果已保存：{save_path}")
+    print(f"Finished, accuracy={accuracy:.4f}，results saved to: {save_path}")
     return payload
 
 

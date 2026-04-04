@@ -72,7 +72,7 @@ def get_llm_response(prompt, task_name):
         raw_content = response.choices[0].message.content
         return clean_r1_output(raw_content)
     except Exception as e:
-        print(f"API 请求失败: {e}")
+        print(f"API Failed: {e}")
         return ""
 
 def run_benchmark():
@@ -81,13 +81,13 @@ def run_benchmark():
 
     for task_name in TARGET_TASKS:
         print(f"\n" + "="*50)
-        print(f"正在测评任务: {task_name}")
+        print(f"Task: {task_name}")
         
         try:
             
             task_local_path = os.path.join(LOCAL_DATA_DIR, task_name)
             if os.path.exists(task_local_path):
-                print(f"从本地加载数据: {task_local_path}")
+                print(f"Loading data : {task_local_path}")
                 dataset = datasets.load_from_disk(task_local_path)
                 test_df = dataset["test"].to_pandas()
 
@@ -96,7 +96,7 @@ def run_benchmark():
 
 
             if SAMPLE_LIMIT is not None:
-                print(f"抽样模式:仅测试前 {SAMPLE_LIMIT} 条数据。")
+                print(f"SAMPLE: {SAMPLE_LIMIT} 。")
                 test_df = test_df.head(SAMPLE_LIMIT)
 
 
@@ -112,7 +112,7 @@ def run_benchmark():
 
             generations = []
             temp_rows = []
-            print(f"正在调用 {MODEL_NAME} 推断...")
+            print(f" Using {MODEL_NAME} ...")
             for i, p in enumerate(tqdm(prompts)):
                 res = get_llm_response(p, task_name)
                 generations.append(res)
@@ -125,23 +125,23 @@ def run_benchmark():
                 )
 
                 if i < 2:
-                    print(f"\n[案例 {i+1}]")
-                    print(f"预测结果: {res}")
-                    print(f"标准答案: {test_df['answer'].iloc[i]}")
+                    print(f"\n[id: {i+1}]")
+                    print(f"Predicted answer: {res}")
+                    print(f"Gold answer: {test_df['answer'].iloc[i]}")
 
             answers = test_df["answer"].tolist()
             score = evaluate(task_name, generations, answers)
             summary_results[task_name] = score
-            print(f"\n任务 [{task_name}] 测评得分: {score:.4f}")
+            print(f"\nTask [{task_name}] score: {score:.4f}")
             ensure_dir("temp_result")
             temp_path = f"./temp_result/{task_name}_{MODEL_NAME}.jsonl"
             with open(temp_path, "w", encoding="utf-8") as f:
                 for row in temp_rows:
                     f.write(json.dumps(row, ensure_ascii=False) + "\n")
-            print(f"已保存任务 {task_name} 的临时结果: {temp_path}")
+            print(f"The temporary results for {task_name}: {temp_path}")
             
         except Exception as e:
-            print(f"任务 {task_name} 运行中出错: {e}")
+            print(f" ERROR {task_name} : {e}")
             summary_results[task_name] = "Error"
 
 

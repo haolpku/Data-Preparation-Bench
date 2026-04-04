@@ -15,10 +15,10 @@ from typing import List, Optional
         
 #     return content.strip()
 def get_reasoning_content(content: str) -> str:
-    # 移除 Markdown 代码块标记
+
     content = content.replace('```json', '').replace('```', '').strip()
     
-    # 统一提取逻辑，确保变量名一致
+
     if '### Reasoning:' in content:
         content = content.split('### Reasoning:')[1].strip()
     elif '**Reasoning:**' in content:

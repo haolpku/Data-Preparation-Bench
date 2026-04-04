@@ -2,7 +2,7 @@ import re
 import os
 import openai
 
-# ==================== 全局变量设置区 ====================
+# ========================================================
 NEW_API_KEY = "sk-dummy"
 NEW_BASE_URL = "http://XXX/v1"
 NEW_MODEL_NAME = "gpt-4o"

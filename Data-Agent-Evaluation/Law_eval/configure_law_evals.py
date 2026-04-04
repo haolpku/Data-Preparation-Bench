@@ -2,7 +2,7 @@ import re
 import os
 import openai
 
-# ==================== 全局变量设置区 ====================
+# ========================================================
 NEW_API_KEY = "sk-dummy"
 NEW_BASE_URL = "http://XXX/v1"
 NEW_MODEL_NAME = "gpt-4o"
@@ -86,9 +86,6 @@ def run_configuration():
     update_file("lex-glue/experiments/eurlex.py", lexglue_patterns)
     update_file("lex-glue/experiments/ledgar.py", lexglue_patterns)
     update_file("lex-glue/experiments/unfair_tos.py", lexglue_patterns)
-    update_file("lex-glue/experiments/ecthr.py", lexglue_patterns)
-    update_file("lex-glue/experiments/scotus.py", lexglue_patterns)
-    update_file("lex-glue/experiments/case_hold.py", lexglue_patterns)
 
 
     print("\n ALL FINISHED!")

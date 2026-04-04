@@ -11,7 +11,7 @@ import logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s [%(levelname)s] %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
 logging.getLogger('openai').setLevel(logging.WARNING)
 
-# ==================== 全局变量设置区 ====================
+# ========================================================
 NEW_API_KEY = "sk-dummy"
 NEW_BASE_URL = "http://172.96.160.199:3000/v1"
 NEW_MODEL_NAME = "gpt-4o"

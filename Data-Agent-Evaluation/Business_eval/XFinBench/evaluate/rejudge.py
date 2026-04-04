@@ -7,7 +7,7 @@ from typing import Any, Dict, Iterable, List, Tuple
 from openai import OpenAI
 
 
-# ==================== 全局变量设置区 ====================
+# ========================================================
 NEW_API_KEY = "sk-dummy"
 NEW_BASE_URL = "http://XXX/v1"
 NEW_MODEL_NAME = "gpt-4o"
@@ -172,7 +172,7 @@ def process_result_file(path: str, client: OpenAI) -> Dict[str, Any]:
         updated_item["judge_raw_response"] = judge_raw
         updated_items.append(updated_item)
         processed += 1
-        display_progress(f"{os.path.basename(path)} 复核进度", processed, total_items)
+        display_progress(f"{os.path.basename(path)} progressing", processed, total_items)
 
     total = len(updated_items)
     final_accuracy = final_correct / total if total else 0.0
@@ -194,7 +194,7 @@ def run_rejudge() -> None:
     client = build_reference_client()
     temp_files = list(iter_temp_result_files())
     if not temp_files:
-        print("temp_result 目录中未找到评测文件。")
+        print("temp_result can't find any files。")
         return
 
     for path in temp_files:
@@ -203,8 +203,8 @@ def run_rejudge() -> None:
         save_path = os.path.join(RESULT_DIR, filename)
         dump_json_file(save_path, payload)
         print(
-            f"文件 {filename}: 初始准确率={payload.get('initial_accuracy')}, "
-            f"复核准确率={payload.get('final_accuracy'):.4f}"
+            f"File {filename}: Initial accuracy={payload.get('initial_accuracy')}, "
+            f"Rejudged accuracy={payload.get('final_accuracy'):.4f}"
         )
 
 

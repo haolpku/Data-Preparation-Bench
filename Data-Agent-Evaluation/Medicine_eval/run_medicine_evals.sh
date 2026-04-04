@@ -26,9 +26,9 @@ bash run_all.sh
 cd ..
 
 
-echo ">>>  MedXpertQA..."
+echo ">>>  MedmcQA..."
 
-cd MedXpertQA
+cd MedmcQA
 
 LD_PRELOAD="$CONDA_LIB_PATH/libstdc++.so.6" python llm_eval_medmcqa.py 
 
@@ -56,7 +56,7 @@ eval_scripts=(
 )
 
 for script in "${eval_scripts[@]}"; do
-    echo "正在执行评估: $script"
+    echo "Eval: $script"
     python "$script"
 done
 

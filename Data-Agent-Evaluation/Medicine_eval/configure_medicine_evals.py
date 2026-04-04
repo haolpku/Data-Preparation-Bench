@@ -3,7 +3,7 @@ import os
 import openai
 
 
-# ==================== 全局变量设置区 ====================
+# =======================================================
 NEW_API_KEY = "sk-dummy"
 NEW_BASE_URL = "http://XXX/v1"
 NEW_MODEL_NAME = "gpt-4o"
@@ -72,8 +72,8 @@ def run_configuration():
     ]
 
 
-    update_file("MedXpertQA/llm_eval_medmcqa.py", patterns)
-    update_file("MedXpertQA/eval/main.py", patterns)
+    update_file("MedmcQA/llm_eval_medmcqa.py", patterns)
+    update_file("MedmcQA/eval/main.py", patterns)
 
     update_file("MedCaseReasoning/inferce.py", patterns)
     update_file("MedCaseReasoning/eval.py", patterns)

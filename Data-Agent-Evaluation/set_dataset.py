@@ -21,8 +21,8 @@ COPY_MAP = [
     ("Lex-glue", "Law_eval/lex-glue/data_filtered_48k"),
     # 5. Medcaseresoning/data -> Medicine_eval/MedCaseReasoning/data
     ("Medcaseresoning/data", "Medicine_eval/MedCaseReasoning/data"),
-    # 6. MedmcQA/medmcqa -> Medicine_eval/MedXpertQA/eval/data/medmcqa
-    ("MedmcQA/medmcqa", "Medicine_eval/MedXpertQA/eval/data/medmcqa"),
+    # 6. MedmcQA/medmcqa -> Medicine_eval/MedmcQA/eval/data/medmcqa
+    ("MedmcQA/medmcqa", "Medicine_eval/MedmcQA/eval/data/medmcqa"),
     # 7. MedRBench -> Medicine_eval/MedRBench/data/MedRBench
     ("MedRBench", "Medicine_eval/MedRBench/data/MedRBench"),
 ]

@@ -4,7 +4,7 @@ import logging
 import argparse
 import multiprocessing
 from multiprocessing import Manager
-# ==================== 全局变量设置区 ====================
+# ========================================================
 NEW_API_KEY = "sk-dummy"
 NEW_BASE_URL = "http://XXX/v1"
 NEW_MODEL_NAME = "gpt-4o"
@@ -140,15 +140,13 @@ def main(model_name, patient_case_filepath, model_output_filepath, output_direct
     completed_case_ids = [name.split('.')[0] for name in completed_cases]
     
     for case_id in patient_cases.keys():
-        # 跳过已完成的
+
         if case_id in completed_case_ids:
             continue
         
-        # 关键修改：检查是否存在 'result' 键
         if case_id in model_outputs and 'result' in model_outputs[case_id]:
             case_data = patient_cases[case_id].copy()
             case_data['id'] = case_id
-            # 统一提取推理结果到 case_data 中
             case_data['result'] = model_outputs[case_id]['result']
             cases_to_evaluate.append(case_data)
     
