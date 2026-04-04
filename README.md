@@ -16,6 +16,18 @@ Given raw metadata, the model is tasked with predicting the training data's impa
 
 ### Usage
 
+The package is published on PyPI and can be installed via pip:
+
+```python
+pip install distflow
+```
+
+For vLLM embedding support, install the optional dependency:
+
+```python
+pip install distflow[vllm]
+```
+
 This project uses [uv](https://docs.astral.sh/uv/) for dependency management. To get started:
 
 ```bash

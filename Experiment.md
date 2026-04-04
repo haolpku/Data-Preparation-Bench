@@ -15,6 +15,12 @@ For MMD computation, please refer to [compute_mmd.py](./examples/compute_mmd.py)
 - General Text: [Infinity-Instruct](https://huggingface.co/datasets/BAAI/Infinity-Instruct)
 - Medical: [ReasonMed](https://huggingface.co/datasets/lingshu-medical-mllm/ReasonMed)
 
+The experiments were conducted with the following package versions:
+
+- vllm: 0.8.5.post1
+- torch: 2.6.0
+- transformers: 4.53.0
+
 ## Training
 
 Training is conducted using [LlamaFactory](https://github.com/hiyouga/LlamaFactory). Base models include:
