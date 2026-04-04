@@ -4,11 +4,11 @@ import numpy as np
 from pydantic import BaseModel
 from scipy.spatial.distance import cdist
 
-from data_preparation_bench.data.types import DatasetProcessOutputItem
-from data_preparation_bench.embed.base import BaseEmbed
-from data_preparation_bench.utils import logger
-from data_preparation_bench.utils.stats import embedding_list_summary, ndarray_summary
-from data_preparation_bench.utils.timing import timing_context
+from distflow.data.types import DatasetProcessOutputItem
+from distflow.embed.base import BaseEmbed
+from distflow.utils import logger
+from distflow.utils.stats import embedding_list_summary, ndarray_summary
+from distflow.utils.timing import timing_context
 
 
 class MetricsResult(BaseModel):  # type: ignore[misc]

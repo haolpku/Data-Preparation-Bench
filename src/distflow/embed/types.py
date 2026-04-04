@@ -2,7 +2,7 @@ from typing import Any, TypeAlias
 
 from pydantic import BaseModel
 
-from data_preparation_bench.data.types import DatasetProcessOutputItem
+from distflow.data.types import DatasetProcessOutputItem
 
 EmbeddingInputItem: TypeAlias = DatasetProcessOutputItem
 

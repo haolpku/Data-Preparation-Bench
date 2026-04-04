@@ -7,15 +7,15 @@ import time
 from datetime import datetime
 from typing import Any
 
-from data_preparation_bench.data.data_formatter import (
+from distflow.data.data_formatter import (
     AlpacaFormatter,
     ShareGptFormatter,
 )
-from data_preparation_bench.data.data_loader import load_dataset
-from data_preparation_bench.embed.vllm import VllmEmbed
-from data_preparation_bench.mmd import MMDDistance
-from data_preparation_bench.utils import logger
-from data_preparation_bench.utils.timing import (
+from distflow.data.data_loader import load_dataset
+from distflow.embed.vllm import VllmEmbed
+from distflow.mmd import MMDDistance
+from distflow.utils import logger
+from distflow.utils.timing import (
     get_timing_report,
     get_timings,
     reset_timing,

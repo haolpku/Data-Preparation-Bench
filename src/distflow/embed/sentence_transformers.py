@@ -2,11 +2,11 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, override
 
-from data_preparation_bench.data.types import MessageData
-from data_preparation_bench.embed.base import BaseEmbed
-from data_preparation_bench.embed.types import EmbeddingInputItem, EmbeddingResult
-from data_preparation_bench.utils import logger
-from data_preparation_bench.utils.timing import timing_context
+from distflow.data.types import MessageData
+from distflow.embed.base import BaseEmbed
+from distflow.embed.types import EmbeddingInputItem, EmbeddingResult
+from distflow.utils import logger
+from distflow.utils.timing import timing_context
 
 if TYPE_CHECKING:
     from sentence_transformers import SentenceTransformer

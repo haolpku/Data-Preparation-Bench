@@ -4,7 +4,7 @@ from typing import Any
 
 from redis.asyncio import Redis
 
-from data_preparation_bench.utils import logger
+from distflow.utils import logger
 
 
 class RedisCache:
@@ -42,6 +42,19 @@ class RedisCache:
                 db=self._redis_db,
                 decode_responses=True,
             )
+            try:
+                # 测试连接
+                self._redis.ping()
+                logger.info(
+                    f"成功连接到 Redis: {self._redis_url}, DB: {self._redis_db}"
+                )
+            except Exception as e:
+                logger.error(
+                    f"无法连接到 Redis: {self._redis_url}, DB: {self._redis_db}, 错误: {e}"
+                )
+                raise ConnectionError(
+                    f"无法连接到 Redis: {self._redis_url}, DB: {self._redis_db}"
+                ) from e
         return self._redis
 
     async def load_cache(self, cache_key: str) -> dict[str, Any] | None:
@@ -53,16 +66,21 @@ class RedisCache:
         Returns:
             缓存值字典，如果不存在则返回 None
         """
-        async with self._semaphore:
-            try:
-                redis = self._get_redis()
-                cached_data = await redis.get(cache_key)
-                if cached_data:
-                    return json.loads(cached_data)
-                return None
-            except Exception as e:
-                logger.warning(f"Redis 缓存查询失败: {e}")
-                return None
+        for attempt in range(3):
+            async with self._semaphore:
+                try:
+                    redis = self._get_redis()
+                    cached_data = await redis.get(cache_key)
+                    if cached_data:
+                        return json.loads(cached_data)
+                    return None
+                except Exception as e:
+                    logger.warning(
+                        f"Redis 缓存查询失败 {attempt + 1} / 3: {type(e).__name__}: {e}"
+                    )
+                    await asyncio.sleep(0.1 * (attempt + 1))  # 简单的指数退避
+                    self._redis = None  # 重置 Redis 客户端以尝试重新连接
+        return None
 
     async def save_cache(self, cache_key: str, cache_value: dict[str, Any]) -> bool:
         """设置单个缓存值到 Redis（受 semaphore 限制并发）.
@@ -74,15 +92,20 @@ class RedisCache:
         Returns:
             是否成功
         """
-        async with self._semaphore:
-            try:
-                redis = self._get_redis()
-                serialized = json.dumps(cache_value)
-                await redis.set(cache_key, serialized)
-                return True
-            except Exception as e:
-                logger.warning(f"Redis 缓存写入失败: {e}")
-                return False
+        for attempt in range(3):
+            async with self._semaphore:
+                try:
+                    redis = self._get_redis()
+                    serialized = json.dumps(cache_value)
+                    await redis.set(cache_key, serialized)
+                    return True
+                except Exception as e:
+                    logger.warning(
+                        f"Redis 缓存写入失败 {attempt + 1} / 3: {type(e).__name__}: {e}"
+                    )
+                    await asyncio.sleep(0.1 * (attempt + 1))  # 简单的指数退避
+                    self._redis = None  # 重置 Redis 客户端以尝试重新连接
+        return False
 
     async def close(self) -> None:
         """关闭 Redis 连接."""

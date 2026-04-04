@@ -46,7 +46,7 @@ repos:
     hooks:
       - id: pyright
         name: Pyright type check
-        entry: uv run pyright
+        entry: uv run --all-extras pyright
         language: system
         types: [python]
         pass_filenames: true

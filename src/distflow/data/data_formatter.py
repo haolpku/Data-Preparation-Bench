@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Protocol, cast, runtime_checkable
 
-from data_preparation_bench.data.types import DatasetProcessOutputItem, MessageData
+from distflow.data.types import DatasetProcessOutputItem, MessageData
 
 
 @runtime_checkable

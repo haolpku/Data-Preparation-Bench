@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from data_preparation_bench.embed.types import EmbeddingInputItem, EmbeddingResult
+from distflow.embed.types import EmbeddingInputItem, EmbeddingResult
 
 
 class BaseEmbed(ABC):

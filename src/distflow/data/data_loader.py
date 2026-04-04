@@ -2,9 +2,9 @@ import builtins
 import random
 from typing import Any, Literal, cast
 
-from data_preparation_bench.data.data_formatter import FormatterProtocol
-from data_preparation_bench.data.types import DatasetProcessOutputItem
-from data_preparation_bench.utils import logger
+from distflow.data.data_formatter import FormatterProtocol
+from distflow.data.types import DatasetProcessOutputItem
+from distflow.utils import logger
 
 
 def load_dataset(

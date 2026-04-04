@@ -4,10 +4,10 @@ import json
 from collections.abc import Coroutine
 from typing import Any
 
-from data_preparation_bench.cache.protocol import CacheProtocol
-from data_preparation_bench.embed.base import BaseEmbed
-from data_preparation_bench.embed.types import EmbeddingInputItem, EmbeddingResult
-from data_preparation_bench.utils import logger
+from distflow.cache.protocol import CacheProtocol
+from distflow.embed.base import BaseEmbed
+from distflow.embed.types import EmbeddingInputItem, EmbeddingResult
+from distflow.utils import logger
 
 
 def dict_to_hash(d: dict[Any, Any]) -> str:
