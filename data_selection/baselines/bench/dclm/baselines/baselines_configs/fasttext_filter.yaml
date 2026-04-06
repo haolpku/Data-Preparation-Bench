@@ -1,8 +1,0 @@
-- source: openhermes2_5_extracted_sample_extracted_alpaca
-  steps:
-  - func: classify_fasttext_hq_prob_enricher
-    model_filename: fasttext_oh_eli5.bin
-    key: fasttext_oh_eli5_vs_rw_v2_prob
-  - func: quality_filter
-    key: fasttext_oh_eli5_vs_rw_v2_prob
-    threshold: 0.018112

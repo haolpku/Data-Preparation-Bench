@@ -1,22 +1,8 @@
-name: "dclm_qwen2.5_test"
 output_root: "./output"
 
-filter:
-  type: "bench"
-  method: "dclm"
-  args:
-    train_file: "dataset/intermediate/openhermes2_5_extracted_sample/openhermes2_5_extracted_sample_extracted.jsonl"
-    output_dir: "./output"
-    filtered_file: "final_filtered_file.jsonl"
-    name: "dclm"
-
-train:
-  model_path: "Qwen/Qwen2.5-7B-Instruct"
-  config_profile: "configs/lora_sft.yaml"
-  template: "qwen3_nothink"
-eval:
-  tasks: 
-    - "mmlu"
-  num_fewshot: 0          
-  batch_size: 4           
-  device: "cuda:0"      
+method: "dclm"
+args:
+  train_file: "dataset/messy/lmsys-chat-1m/lmsys-chat-1m_extracted_0.jsonl"
+  output_dir: "./output"
+  filtered_file: "final_filtered_file.jsonl"
+  name: "dclm"

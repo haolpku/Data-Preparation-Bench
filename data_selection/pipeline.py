@@ -10,7 +10,7 @@ import json
 from pathlib import Path
 from datetime import datetime
 from typing import Dict, Any
-from utils.preprocess import DataPreprocessor
+from preprocess_data import DataPreprocessor
 
 CURRENT_FILE = Path(__file__).resolve()
 PROJECT_ROOT = CURRENT_FILE.parent
@@ -22,57 +22,38 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-class ExperimentManager:
-    def __init__(self, args, base_cfg: Dict[str, Any], resume_id: str = None):
-        self.args = args
-        self.cfg = base_cfg
-        self.timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        if resume_id:
-            self.exp_id = resume_id
-            logger.info(f"🔄 Resuming existing experiment: {self.exp_id}")
-        else:
-            self.exp_id = self._generate_exp_id()
-            logger.info(f"🆕 Starting new experiment: {self.exp_id}")
-
-        # self.exp_id = "my_filter_task"
-        self.run_dir = (Path(base_cfg['output_root']) / self.exp_id).absolute()
-        self._setup_dir()
-
-    def _generate_exp_id(self) -> str:
-        model = self.cfg['train']['model_path'].split('/')[-1]
-        data = Path(self.cfg['filter']['train_file']).parent.stem
-        method = self.cfg['filter']['method']
-        return f"{method}_{data}_{model}_{self.timestamp}"
-
-    def _setup_dir(self):
-        self.run_dir.mkdir(parents=True, exist_ok=True)
-        env_data = {**vars(self.args), **self.cfg}
-        config_file = self.run_dir / "experiment_config.yaml"
-        if not config_file.exists():
-            with open(config_file, "w") as f:
-                yaml.dump(env_data, f)
-
 class TaskRunner:
     @staticmethod
     def run_cmd(command: str, cwd: Path, env: Dict, stage_log_path: Path):
         logger.info(f"Running command in {cwd}: {command}")
-        
+        env = env.copy() if env else {}
+        env["HF_ALLOW_CODE_EVAL"] = "1" 
+
+        if isinstance(command, str):
+            cmd_list = shlex.split(command)
+        else:
+            cmd_list = command
+
         with open(stage_log_path, "w") as log_f:
             try:
                 process = subprocess.Popen(
-                    command,
-                    shell=True,
+                    cmd_list,
+                    shell=False,
                     cwd=str(cwd),
                     env=env,
                     stdout=subprocess.PIPE,
                     stderr=subprocess.STDOUT,
                     text=True,
-                    bufsize=1
+                    # bufsize=1,
+                    bufsize=0,
+                    universal_newlines=True,
                 )
                 
-                for line in process.stdout:
-                    print(line, end="") 
-                    log_f.write(line)   
+                for line in iter(process.stdout.readline, ''):
+                    if line: 
+                        print(line, end="", flush=True) 
+                    log_f.write(line)
+                    log_f.flush()   
                 
                 process.wait()
                 if process.returncode != 0:
@@ -86,56 +67,53 @@ class ResearchPlatform:
     def __init__(self, args):
         self.args = args
         self.stage = args.stage
-        resume_id = args.resume_id or None
-        self.config_path = args.config
-        with open(self.config_path, "r") as f:
-            self.cfg = yaml.safe_load(f)
-        
-        train_file = self.preprocess_data(self.cfg['filter']["args"])
-        self.cfg['filter']["args"]["train_file"]  = Path(train_file).absolute()
+        self.resume_id = args.resume_id or None
+        self.filter_cfg = self._load_yaml(args.filter_config_path)
+        self.train_cfg = self._load_yaml(args.train_config_path)
+        self.eval_cfg = self._load_yaml(args.eval_config_path)
 
-        if "args" in self.cfg["filter"]:
-            for key, value in self.cfg["filter"]["args"].items():
-                self.cfg["filter"][key] = value
-        self.data_preprocessor = DataPreprocessor()
-        self.exp_manager = ExperimentManager(args, self.cfg, resume_id=resume_id)
+        # self.data_preprocessor = DataPreprocessor()
+        self.timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        self.train_file = Path(args.train_file).absolute()
+        if "args" in self.filter_cfg:
+            for key, value in self.filter_cfg["args"].items():
+                self.filter_cfg[key] = value
+        
+        filter_id = self._generate_filter_id()
+        self.filter_run_dir = (Path(self.filter_cfg['output_root']) / "data_selection" / filter_id).absolute()
+        self.filter_run_dir.mkdir(parents=True, exist_ok=True)
+        self.train_and_eval_run_dir = (Path(self.filter_cfg['output_root']) / "train_and_eval" / filter_id).absolute()
+        self.train_and_eval_run_dir.mkdir(parents=True, exist_ok=True)
         self.env = self._prepare_env()
+
+    def _generate_filter_id(self) -> str:
+        if self.resume_id is not None: return self.resume_id
+        data = self.train_file.parent.stem
+        method = self.filter_cfg['method']
+        return f"{data}_{method}_{self.timestamp}"
+
+    def _load_yaml(self, path):
+        if not path or not os.path.exists(path):
+            return {}
+        with open(path, "r", encoding="utf-8") as f:
+            return yaml.safe_load(f) or {}
 
     def _prepare_env(self):
         env = os.environ.copy()
         env["PYTHONPATH"] = str(PROJECT_ROOT) 
+        env["DEBUG_MODE"] = "1"
         return env
-
-    def _save_latest_id(self):
-        record_file = PROJECT_ROOT / f"{self.args.latest_run_path}"
-        with open(record_file, "w") as f:
-            f.write(self.exp_manager.exp_id)
-        logger.info(f"💾 Experiment ID saved to {record_file}")
 
     def start(self):
         # 1. Filtering
-        if any(s in self.stage for s in ["all", "filter"]):
+        if "filter" in self.stage:
             logger.info("🔍 Starting data filtering stage...")
-            if self._run_filter():
-                self._save_latest_id()
+            if not self._run_filter(): return
 
         # 2. Training
-        if any(s in self.stage for s in ["all", "train"]):
-            logger.info("🚀 Starting model training stage...")
-            if not self._run_train(): return
-        
-        # 3. Evaluation
-        if any(s in self.stage for s in ["all", "eval"]):
-            logger.info("📊 Starting model evaluation stage...")
-            if not self._run_eval(): return
-
-    def preprocess_data(self, f_cfg):
-        input_file = Path(f_cfg['train_file'])
-        output_file = input_file.parent / f"{input_file.stem}_alpaca.jsonl"
-        if output_file.exists(): return str(output_file)
-        self.data_preprocessor.preprocess(input_file, output_file)
-        return str(output_file)
-
+        if any(s in self.stage for s in ["train", "eval"]):
+            if not self._run_train_and_eval(): return
+            
     def add_args(self, args_list, prefix, data):
         if isinstance(data, dict):
             for key, value in data.items():
@@ -148,99 +126,98 @@ class ResearchPlatform:
             args_list.append(f"--{prefix} {shlex.quote(str(data))}")
 
     def build_filter_command(self):
-        filter_cfg = self.cfg.get("filter", {})
-        env_name = filter_cfg.get("env", "default_env")
+        env_name = self.filter_cfg.get("env", "default_env")
         
         args_list = []
-        for key, value in self.cfg["filter"]["args"].items():
+        for key, value in self.filter_cfg["args"].items():
             self.add_args(args_list, key, value)
-        self.add_args(args_list, "output_root", self.exp_manager.run_dir)
-
+        self.add_args(args_list, "output_root", self.filter_run_dir)
+        self.add_args(args_list, "train_file", self.train_file)
         cmd = (
-            f"python -m debugpy --listen 5679 --wait-for-client start.py "
+            f"python start.py "
             + " ".join(args_list)
         )
         return cmd
 
     def _run_filter(self):
-        f_cfg = self.cfg['filter']
-        cwd = PROJECT_ROOT / "baselines" / f_cfg["type"] / f_cfg["method"]
-        log_p = self.exp_manager.run_dir / "filter.log"
+        method = Path(self.args.filter_config_path).stem
+        cwd = PROJECT_ROOT / "baselines" / self.filter_cfg["method"]
+        log_p = self.filter_run_dir / "filter.log"
         
         cmd = self.build_filter_command()
         return TaskRunner.run_cmd(cmd, cwd, self.env, log_p)
 
-    def build_train_command(self, **kwargs):
-        train_cfg = self.cfg.get("train", {})
+    def get_conda_python(self, env_name: str):
+        conda_prefix = os.environ.get("CONDA_PREFIX")
+        if conda_prefix:
+            base_path = os.path.dirname(conda_prefix)
+            target_python = os.path.join(base_path, env_name, "bin", "python")
+            if os.path.exists(target_python):
+                return target_python
         
+        return f"conda run -n {env_name} --no-capture-output python"
+        
+    def build_train_command(self, **kwargs):
         args_list = []
-        for key, value in self.cfg["train"].items():
-            self.add_args(args_list, key, value)
         for key, value in kwargs.items():
             self.add_args(args_list, key, value)
-        self.add_args(args_list, "output_root", self.exp_manager.run_dir / "adapter_model")
 
+        python_exec = self.get_conda_python("bench")
         cmd = (
-            f"python train_entry.py "
+            f"{python_exec} train_eval.py "
             + " ".join(args_list)
+        )
+        mode = []
+        if "train" in self.args.stage:
+            mode.append("train")
+        if "eval" in self.args.stage:
+            mode.append("eval")
+        mode = ",".join(mode)
+        cmd += (
+            f" --train_config_path {self.args.train_config_path}"
+            f" --eval_config_path {self.args.eval_config_path}"
+            f" --mode {mode}"
         )
         return cmd
 
-    def _run_train(self):
-        t_cfg = self.cfg['train']
-        f_cfg = self.cfg['filter']
-        cwd = PROJECT_ROOT / "training"
-        log_p = self.exp_manager.run_dir / "train.log"
+    def _run_train_and_eval(self):
+        t_cfg = self.train_cfg
+        f_cfg = self.filter_cfg
+        cwd = PROJECT_ROOT
+        filtered_file = None
+        if "filter" in self.stage or self.resume_id is not None:
+            filtered_file = self.filter_run_dir / f_cfg['filtered_file'] 
+
+            if  f_cfg["method"] == "dfa":
+                # 如果是dfa方法，需要选择过滤的第x步后数据集
+                output_file = self.filter_run_dir / f_cfg['filtered_file']
+                if os.path.exists(output_file):
+                    with open(output_file, 'r', encoding='utf-8') as f:
+                        line = f.readline()
+                        if line:
+                            data = json.loads(line)
+                            filtered_file = data[str(f_cfg["step"])]
+                            filtered_file = self.filter_run_dir / filtered_file
         
-        filtered_file = self.exp_manager.run_dir / f_cfg['filtered_file'] 
-        if not filtered_file.exists():
-            if "train_file" in t_cfg:
-                filtered_file = t_cfg["filtered_file"]
-            else:
-                filtered_file = None
-
-        if any(s in self.stage for s in ["filter"]) and f_cfg["method"] == "dfa":
-            output_file = self.exp_manager.run_dir / f_cfg['filtered_file']
-            with open(output_file, 'r', encoding='utf-8') as f:
-                line = f.readline()
-                if line:
-                    data = json.loads(line)
-                    filtered_file = data[str(f_cfg["step"])]
-
+        log_p = self.train_and_eval_run_dir / "train_eval.log"
         if filtered_file is None or not os.path.exists(filtered_file):
-            logger.error(f"❌ Filtered file not found: {filtered_file}. Did you run 'filter' stage?")
-            return False
-
-        dataset_name = Path(f_cfg['train_file']).parent.name
+            filtered_file = self.train_file
+        
+        dataset_name = self.train_file.parent.name
         cmd = self.build_train_command(
             train_file=str(filtered_file),
-            train_dataset_name=str(dataset_name) 
+            output_root=str(self.train_and_eval_run_dir)
         )
-        return TaskRunner.run_cmd(cmd, cwd, self.env, log_p)
-
-    def _run_eval(self):
-        e_cfg = self.cfg['eval']
-        cwd = PROJECT_ROOT #/ "eval"
-        log_p = self.exp_manager.run_dir / "eval.log"
-        output_dir = self.exp_manager.run_dir / 'eval_results'
-        os.makedirs(output_dir, exist_ok=True)
-        cmd = (
-            f"python eval/run_eval.py "
-            f"--model_path {self.cfg['train']['model_path']} "
-            f"--cfg {self.config_path} "
-            f"--output_dir {output_dir}"
-        )
-        if any(s in self.stage for s in ["filter"]):
-            cmd += f"--peft_path {self.exp_manager.run_dir / 'adapter_model'} "
-
         return TaskRunner.run_cmd(cmd, cwd, self.env, log_p)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--config", default="configs/default_exp.yaml")
-    parser.add_argument("--stage", default="all", help="all, filter, train, eval")
-    parser.add_argument("--resume_id", help="previous experiment ID for connecting the subsequent steps.")
-    parser.add_argument("--latest_run_path", default="./.latest_run")
+    parser.add_argument("--filter_config_path", default="configs/dfa.yaml")
+    parser.add_argument("--train_config_path", default="configs/train_qwen2.5.yaml")
+    parser.add_argument("--eval_config_path", default="configs/eval.yaml")
+    parser.add_argument("--train_file", type=str, required=True)
+    parser.add_argument("--stage", default="all", help="filter, train, eval")
+    parser.add_argument("--resume_id", default=None, help="previous experiment ID for connecting the subsequent steps.")
     args = parser.parse_args()
     
     platform = ResearchPlatform(args)

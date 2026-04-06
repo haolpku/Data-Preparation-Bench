@@ -1,0 +1,12 @@
+is_peft: false
+model_path: 
+tasks: 
+  # - "mmlu"
+  # - "gsm8k"
+  - "truthfulqa_mc1"
+  # - "truthfulqa_mc2"
+  # - "humaneval"
+  # - "humaneval_64"
+num_fewshot: 0          
+batch_size: 10           
+device: "cuda:0" 

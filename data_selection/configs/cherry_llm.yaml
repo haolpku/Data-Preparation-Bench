@@ -1,21 +1,9 @@
-name: "cherry_llm_qwen2.5_test"
 output_root: "./output"
 
-filter:
-  type: "surrogate_free"
-  method: "cherry_llm"
-  args:
-    train_file: "dataset/intermediate/openhermes2_5_extracted_sample/openhermes2_5_extracted_sample_extracted.jsonl"
-    model_path: "Qwen/Qwen2.5-7B-Instruct"
-    filtered_file: "final_filtered_file.jsonl"
-    template: "qwen3_nothink"
-train:
+method: "cherry_llm"
+args:
+  train_file: "dataset/messy/lmsys-chat-1m/lmsys-chat-1m_extracted_5.jsonl"
   model_path: "Qwen/Qwen2.5-7B-Instruct"
-  config_profile: "configs/lora_sft.yaml"
+  filtered_file: "final_filtered_file.jsonl"
   template: "qwen3_nothink"
-eval:
-  tasks: 
-    - "mmlu"
-  num_fewshot: 0          
-  batch_size: 4           
-  device: "cuda:0"      
+  train_config_path: "configs/train_qwen2.5.yaml"

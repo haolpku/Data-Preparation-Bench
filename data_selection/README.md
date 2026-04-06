@@ -1,132 +1,115 @@
-# Data Select Bench
-A unified, modular pipeline for LLM data selector, fine-tuning, and benchmarking. This platform allows researchers to evaluate various data filtering strategies (baselines) across different models and tasks in a reproducible manner.
+# Data-Preparation-Bench 🚀
 
-
-## 🌟 Overview
-
-This platform automates the end-to-end workflow of data-centric AI:
-1.  **Filtering**: Selecting high-quality subsets from raw datasets using diverse baselines.
-2.  **Training**: Fine-tuning LLMs (e.g., Qwen, Llama) using the filtered data.
-3.  **Evaluation**: Benchmarking the resulting models on standard tasks (MMLU, GSM8K, etc.).
-
-All artifacts—filtered datasets, model checkpoints, and evaluation reports—are automatically organized within a unique experiment directory for full traceability.
+专注于大模型数据筛选、训练与评估的完整流水线。
 
 ---
 
-## 🏗️ Architecture & Baselines
+### 数据构建
 
-The project is structured to support extensible data selection methods located in the `baseline/` directory:
+## 数据选择环境安装
+目前实现的baseline包括DataFlow-Agent, DataComp for LM以及Cherry_llm
 
-| Category | Description | Examples |
-| :--- | :--- | :--- |
-| **Agent** | Agent-based autonomous data processing. | `baseline/agent` |
-| **Bench** | Standard data curation benchmarks. | `baseline/bench/` |
-| **Surrogate-Based** | Methods using small models to score data for large models. | `baseline/surrogate_based` |
-| **Surrogate-Free** | Self-scoring or intrinsic data quality metrics. | `baseline/surrogate_free` |
-
----
-
-## 🚀 Quick Start
-
-### 1. Environment Setup
-The platform uses specialized Conda environments for different stages to avoid dependency conflicts.
-
-### 2. Configuration
-The following YAML configuration defines a full pipeline including **Data Filtering** (via DFA Agent), **Model Training** (via LlamaFactory), and **Evaluation** (via LM-Eval-Harness). 
-
-Save this file as `configs/dfa.yaml` before running the pipeline.
-
-```yaml
-# Pipeline Metadata
-name: "dfa_qwen2.5_test"
-output_root: "./output"
-
-# 1. Data Selection (Filtering) Stage
-filter:
-  type: "agent"              # Selection category: Agent-based
-  method: "dfa"              # Specific method: Data-Flow Analysis
-  step: 1                    # DFA-specific: Target step for output extraction
-  args:
-    train_file: "dataset/intermediate/openhermes2_5_extracted_sample/openhermes2_5_extracted_sample_extracted.jsonl"
-    filtered_file: "final_filtered_file.jsonl"
-    api_key: "your_api_key_here"
-    api_url: "http://your_api_endpoint:3001/v1"
-    target: "Data Filtering"  # Prompt for Operator Matching Agent
-    writer_target: "Generate executable code and save filtered training data" # Prompt for Code Gen Agent
-
-# 2. Training Stage (SFT via LlamaFactory)
-train:
-  model_path: "Qwen/Qwen2.5-7B-Instruct"
-  config_profile: "configs/lora_sft.yaml" # Path to LlamaFactory LoRA config
-  template: "qwen3_nothink"
-
-# 3. Evaluation Stage (LM-Eval-Harness)
-eval:
-  tasks: 
-    - "mmlu"
-  num_fewshot: 0           # Zero-shot evaluation
-  batch_size: 4           
-  device: "cuda:0"
-```
-
-### 3. Run Pipeline
-
-You can execute the entire data selection pipeline with a single command. The system will automatically reference the environment configurations specified in `docs/{method}.md` and initiate the corresponding selection logic.
-
-#### Currently Implemented Methods
-The following methods are currently supported (more are being added):
-
-* **Agent Methods**
-    * `dfa`: Data-Flow Analysis
-* **Bench Methods** 
-    * `dclm`: Data-Centric Language Modeling (Extracted from the official DCLM-bench data filtering suite)
-* **Surrogate Free Methods**
-    * `cherry_llm`: Cherry-picking for Large Language Models
-
-#### Execution Command
-To run the pipeline, set the `METHOD` variable and execute the entry script:
-
-```bash
-# 1. Set the method (options: dfa, dclm, cherry_llm)
-export METHOD=dfa 
-
-# 2. (Optional) Set mirror endpoint to avoid download hangs
-export HF_ENDPOINT="[https://hf-mirror.com](https://hf-mirror.com)"
-
-# 3. Configure environment and launch the pipeline
-cd data_selection && bash scripts/run_${METHOD}.sh
-```
-
-### 4. Visual
+### DataFlow-Agent
 ```bash
 cd data_selection
-conda env create -f env_config/bench.yaml
-conda activate bench
-python gradio_app/app.py
+conda create -n dfa python==3.11 -y
+conda activate dfa
+
+git submodule add git@github.com:OpenDCAI/DataFlow-Agent.git third_party/DataFlow-Agent
+cd third_party/DataFlow-Agent
+pip install -r requirements-data.txt
+pip install -e .
 ```
-![Gradio Interface](images/gradio.png)
+### DataComp for LM
+```bash
+cd data_selection
+conda create -n dclm python==3.10 -y
+conda activate dclm
+
+git submodule add git@github.com:mlfoundations/DCLM.git third_party/DCLM
+cd third_party/DCLM
+git apply ../../assets/patches/cherry_llm.patch
+pip install -r requirements.txt
+
+sudo apt update
+sudo apt install cmake build-essential g++-9 -y
+sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-9 90
+python setup.py install
+pip install ray
+
+```
+### Cherry_llm
+```bash
+cd data_selection
+conda create -n cherry_llm python==3.10 -y 
+conda activate cherry_llm
+
+git submodule add git@github.com:tianyi-lab/Cherry_LLM.git third_party/Cherry_LLM
+cd third_party/Cherry_LLM
+git apply ../../assets/patches/cherry_llm.patch
+pip install -r requirements.txt
+
+```
+
+## 🛠️ 训练和评估环境安装 (Installation)
+```bash
+# 1. 创建并激活环境
+conda create -n bench python=3.11 -y
+conda activate bench
+
+# 2. 安装核心依赖 LlamaFactory
+git submodule add --depth 1 https://github.com/hiyouga/LlamaFactory.git third_party/LlamaFactory
+cd third_party/LlamaFactory && pip install -e .
+
+# 3. 安装评估库
+pip install lm-eval
+```
+
+
+## 🚀 快速开始 (Quick Start)
+
+整个流水线分为 **数据筛选** 和 **一键训练评估** 两个阶段。
+一键筛选和训练评估
+```bash
+python pipeline.py  \
+    --filter_config configs/dfa.yaml  \
+    --train_config configs/train_qwen2.5.yaml \
+    --eval_config configs/eval.yaml \
+```
+
+分步执行
+### 第一阶段：数据筛选 (Data Selection)
+运行指定的基线算法从原始数据中选出黄金子集。
+```bash
+python data_selection.py --config configs/dfa.yaml
+```
+
+### 第二阶段：训练与评估 (Train & Eval)
+使用筛选后的数据进行自动化的训练和多指标评估。
+```bash
+python train_eval.py \
+    --train_file output/data_selection/dfa_alpaca_10pct/selected_data.jsonl \
+    --train_config configs/train_qwen2.5.yaml \
+    --eval_config configs/eval.yaml \
+    --stage train,eval 
+```
 
 ---
 
-## 📂 Experiment Management
+## 📊 实验输出结构 (Output Structure)
 
-The platform automatically generates a unique `exp_id` and directory structure for every run:
-`output/{Method}_{Dataset}_{Model}__{Timestamp}/`
+为了确保实验的可追溯性，本项目采用“上游数据、下游实验”的分离管理逻辑：
 
 ```text
-├── experiment_config.yaml  # Backup of the original config
-├── filter.log              # Logs from the filtering stage
-├── train.log               # Logs from the SFT stage
-├── eval.log                # Logs from the evaluation stage
-├── final_filtered_file.jsonl # The selected data subset
-├── adapter_model/          # Trained PEFT/LoRA weights
-└── eval_results/           # JSON/Markdown evaluation metrics
+output/
+├── data_selection/                    # 【阶段一：数据准备】
+│   └── {filter_id}/                   # 示例：dfa_alpaca_10pct
+│       ├── selected_data.jsonl        # 过滤后的数据集
+│
+└── experiments/                       # 【阶段二：训练与验证闭环】
+    └── {model}_on_{filter_id}_{time}/ # 唯一实验 ID
+        ├── model/                     # 训练产物 (Checkpoints/LoRA weights)
+        ├── eval/                      # 该模型在各 Benchmark 上的成绩 (MMLU/GSM8K)
+        ├── config/                    # 运行时配置备份 (runtime_config.yaml)
 ```
----
 
-
-## 📈 Roadmap
-- [ ] Support for Multi-GPU Distributed Data Processing.
-- [ ] Integration with more surrogate-based/free and agent models.
-- [ ] Automated visualization of Loss vs. Data Ratio curves.
----
