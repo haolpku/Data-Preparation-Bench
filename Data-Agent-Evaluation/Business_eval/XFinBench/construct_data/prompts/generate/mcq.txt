@@ -1,0 +1,88 @@
+Please rewrite a question-answer pair into one or more question(s) with three candidate choices. Specifically,
+1. The question and correct answer should be generated from the question and/or answer, under a clear and concise wording style. None of the following expressions is allowed in the question: (1) unclear pronoun; (2) in/given/according to the chapter/figure/table.
+2. There are three candidate choices for the question. The correct answer lies in Choice (a), and Choice (b) and (c) are both wrong to the question. Choice (a), (b) and (c), should be independent and mutually exclusive. Noising choices, i.e. (b) and (c), should share the similar wording and length with the correct answer (a). Choice (b) reflects a misunderstanding of the original question-answer pair, while Choice (c) is made up by you.
+3. You should extract the context of the original question. The context usually introduces the background of the generated question(s). Note that: (1) the context must NOT be question; (2) there should NOT be duplicated or contradictory information between the context and the statement.
+4. You are allowed to generate two or more questions from one original question-answer pair. Under this case, the questions should be independent of each other, with as little overlap as possible.
+
+Example 1:
+Original Question: Last month, BlueSky Airline announced that it would stretch out its bill payments to 45 days from 30 days. The reason given was that the company wanted to \"control costs and optimize cash flow.\" The increased payables period will be in effect for all of the company's 4,000 suppliers. Why don't all firms simply increase their payables periods to shorten their cash cycles?
+Original Answer: They would like to! The payables period is a subject of much negotiation, and it is one aspect of the price a firm pays its suppliers. A firm will generally negotiate the best possible combination of payables period and price. Typically, suppliers provide strong financial incentives for rapid payment. This issue is discussed in detail in a later chapter on credit policy.
+Context: Last month, BlueSky Airline announced that it would stretch out its bill payments to 45 days from 30 days. 
+Generated Question: Which one of the following choices is one of the reasons of BlueSky Airline announcement?
+Choices:
+(a) Optimize cash flow
+(b) Increase investment in fixed costs
+(c) Increase sales volume
+Correct Answer: a
+
+Example 2:
+Original Question: What are the advantages of using the DCF model for determining the cost of equity capital? What are the disadvantages? What specific piece of information do you need to find the cost of equity using this model? What are some of the ways in which you could get this estimate?
+Original Answer: The primary advantage of the DCF model is its simplicity. The method is disadvantaged in that (1) the model is applicable only to firms that actually pay dividends; many do not; (2) even if a firm does pay dividends, the DCF model requires a constant dividend growth rate forever; (3) the estimated cost of equity from this method is very sensitive to changes in g, which is a very uncertain parameter; and (4) the model does not explicitly consider risk, although risk is implicitly considered to the extent that the market has impounded the relevant risk of the stock into its market price. While the share price and most recent dividend can be observed in the market, the dividend growth rate must be estimated. Two common methods of estimating g are to use analysts' earnings and payout forecasts or to determine some appropriate average historical g from the firm's available data.
+Context: The DCF model have advantages and disadvantages for determining the cost of equity capital.
+Generated Question: Which one of the following advantages do the DCF model have?
+Choices:
+(a) Simple calculation
+(b) Applicable for firms that do not pay dividends
+(c) Insensitivity to the financial environment
+Correct Answer: a
+
+Example 3:
+Original Question: 'When a bank is negotiating currency swaps, it should try to ensure that it is receiving the lower interest rate currency from a company with a low credit risk.' Explain.
+Original Answer: As time passes there is a tendency for the currency which has the lower interest rate to strengthen. This means that a swap where we are receiving this currency will tend to move in the money (i.e., have a positive value). Similarly a swap where we are paying the currency will tend to move out of the money (i.e., have a negative value). From this it follows that our expected exposure on the swap where we are receiving the low-interest currency is much greater than our expected exposure on the swap where we are receiving the high-interest currency. We should therefore look for counterparties with a low credit risk on the side of the swap where we are receiving the low-interest currency. On the other side of the swap we are far less concerned about the creditworthiness of the counterparty.
+Context: A bank is negotiating currency swaps.
+Generated Question: Which one of the following actions should it consider?
+Choices:
+(a) Seek counterparties with low credit risk where the bank is receiving the low-interest currency
+(b) Seek counterparties with high credit risk where the bank is receiving the low-interest currency
+(c) Seek counterparties with low credit risk where the bank is receiving the high-interest currency
+Correct Answer: a
+
+Example 4:
+Original Question: How can bank behavior and the Fed's behavior cause money supply growth to be precyclical (rising in booms and falling in recessions)?
+Original Answer: Bank behavior can lead to procyclical money growth because when interest rates rise in a boom, they decrease excess reserves and increase their borrowing from the Fed, both of which lead to a higher money supply. Similarly, when interest rates fall in a recession, they increase excess reserves and decrease their borrowing from the Fed, leading to a lower money supply. The result is that the money supply will tend to grow faster in booms and slower in recessions--it is procyclical. Fed behavior also can lead to procyclical money growth because (as the answer to problem 1 indicates) an interest-rate target can lead to a slower rate of growth of the money supply during recessions and a more rapid rate of growth during booms.
+Context: Bank behavior and the Fed's behavior can cause money supply growth to be precyclica.
+Generated Question: Which one of the following bank and/or the Fed's behaviours would happen when interest rates rise in a boom?
+Choices:
+(a) Banks increase their borrowings from the Fed
+(b) Banks increase excess reserves
+(c) The Fed's make positive announcements
+Correct Answer: a
+Generated Question: Which one of the following bank and/or the Fed's behaviours would happen when interest rates rise in a recession?
+Choices:
+(a) Banks decrease their borrowings from the Fed
+(b) Banks decrease excess reserves
+(c) The Fed's make positive announcements
+Correct Answer: a
+
+Example 5:
+Original Question: Which regulatory agency has the primary responsibility for supervising the following categories of commercial banks?  \n a. National banks  \n b. Bank holding companies \n c. Non-Federal Reserve member state banks  \n d. Federal Reserve member state banks
+Original Answer: (a) Office of the Comptroller of the Currency; (b) the Federal Reserve; (c) state banking authorities and the FDIC; (d) the Federal Reserve
+Context: Regulatory agencies have the primary responsibility for supervising commercial banks.
+Generated Question: Which one of the following agencies has the primary responsibility for supervising national banks?
+Choices:
+(a) Office of the Comptroller of the Currency
+(b) state banking authorities
+(c) the Bank of Settlement
+Correct Answer: a
+Generated Question: Which one of the following agencies has the primary responsibility for supervising bank holding companies?
+Choices:
+(a) the Federal Reserve
+(b) Office of the Comptroller of the Currency
+(c) the International Monetary Fund
+Correct Answer: a
+Generated Question: Which one of the following agencies has the primary responsibility for supervising non-Federal Reserve member state banks?
+Choices:
+(a) state banking authorities and the FDIC
+(b) the Federal Reserve
+(c) the National Credit Union Administration
+Correct Answer: a
+Generated Question: Which one of the following agencies has the primary responsibility for supervising Federal Reserve member state banks?
+Choices:
+(a) the Federal Reserve
+(b) the FDIC
+(c) Financial Stability Oversight Council
+Correct Answer: a
+
+Given the above instructions and examples, please use the following question-answer pair to generate at least one question with candidate choices and context.
+Original Question: {orig_ques}
+Original Answer: {orig_ans}

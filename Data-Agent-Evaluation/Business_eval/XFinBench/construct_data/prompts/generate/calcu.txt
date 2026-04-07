@@ -1,0 +1,54 @@
+Please rewrite a question-answer pair into one or more question(s) with clear answer(s). Specifically,
+1. The question should be generated from the original question-answer pair and written in a clear and concise wording style. The question should clarify the unit for its answer at the end if any.
+2. The answer MUST be pure numbers from the original answer without any symbol attached. Specifically, it should be in decimal form and have no special symbols like percent sign and currency symbols.
+3. You should extract the context of the original question. The context usually contains the necessary details for calculation, and serves as the background of the generated question(s). Note that: (1) the context must NOT be question; (2) there should NOT be duplicated or contradictory information between the context and the statement.
+4. You are allowed to generate two or more questions from one question-answer pair, each with a answer. Under this case, the questions should be independent of each other. It is not allowed that the answer to any questions is an intermediate step to other questions.
+
+Example 1:
+Original Question: A credit default swap requires a semiannual payment at the rate of 60 basis points per year. The principal is $300 million and the credit default swap is settled in cash. A default occurs after four years and two months, and the calculation agent estimates that the price of the cheapest deliverable bond is 40% of its face value shortly after the default. List the cash flows and their timing for the seller of the credit default swap.
+Original Answer: The seller receives  \[300,000,000\times 0.0060\times 0.5=\$900,000\]  at times 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, and 4.0 years. The seller also receives a final accrual payment of about $300,000 ( = $300,000,000\times 0.060\times 2/12) at the time of the default (4 years and two months). The seller pays  \[300,000,000\times 0.6=\$180,000,000\]  at the time of the default. (This does not consider day count conventions.)
+Context: A credit default swap requires a semiannual payment at the rate of 60 basis points per year. The principal is $300 million and the credit default swap is settled in cash. A default occurs after four years and two months, and the calculation agent estimates that the price of the cheapest deliverable bond is 40% of its face value shortly after the default. 
+Generated Question: What is the cash paid by the seller at the time of the default? (Unit: dollar)
+Answer: 180000000.00
+
+Example 2:
+Original Question: Calculate the price of a three-month American put option on a non-dividend-paying stock when the stock price is $60, the strike price is $60, the risk-free interest rate is 10% per annum, and the volatility is 45% per annum. Use a binomial tree with a time interval of one month.
+Original Answer: In this case, \(S_0=60\), \(K=60\), \(r=0.1\), \(\sigma=0.45\), \(T=0.25\), and \(\Delta t=0.0833\). Also \n \[u=e^[\sigma/\Delta t]=e^[0.45\sqrt[0.0833]]=1.1387\] \n \[d=\frac[1][u]=0.8782\] \n \[a=e^[r\Delta t]=e^[0.1\cdot 0.0833]=1.0084\] \n \[p=\frac[a-d][u-d]=0.4998\] \n \[1-p=0.5002\] \n The output from DerivaGem for this example is shown in the Figure S21.1. The calculated price of the option is $5.16. \n Figure S21.1: Tree for Problem 21.2
+Context: Here is a three-month American put option on a non-dividend-paying stock. Suppose the stock price is $60, the strike price is $60, the risk-free interest rate is 10% per annum, and the volatility is 45% per annum.
+Generated Question:  What is the price of this put option using a binomial tree with a time interval of one month?
+Answer: 5.16
+
+Example 3:
+Original Question: You want to buy a new sports coupe for $61,800, and the finance office at the dealership has quoted you a 7.4 percent APR loan for 60 months to buy the car. What will your monthly payments be? What is the effective annual rate on this loan?
+Original Answer: We first need to find the annuity payment. We have the PVA, the length of the annuity, and the interest rate. Using the PVA equation:\n\n\\[PVA=C([1-[1/(1+r)]^t\]/\\ r)\\]\n\n\\[\\$61,800=\\$C[1-[1\\ /\\ [1+(.074/12)]^60]/\\ (.074/12)]\\]\n\nSolving for the payment, we get:\n\n\\[C=\\$61,800\\ /\\ 50.02385=\\$1,235.41\\]\n\nTo find the EAR, we use the EAR equation:\n\n\\[EAR=[1+(APR\\ /\\ m)]^m-1\\]\n\n\\[EAR=[1+(.074\\ /\\ 12)]^12-1=.0766\\ or \\ 7.66\\%\\]
+Context: You want to buy a new sports coupe for $61,800, and the finance office at the dealership has quoted you a 7.4 percent APR loan for 60 months to buy the car.
+Generated Question: What will your monthly payments be? (Unit: dollar)
+Answer: 1235.41
+Generated Question: What is the effective annual rate on this loan?
+Answer: 0.0766
+
+Example 4:
+Original Question: What is the value of an investment that pays $7,500 every _other_ year forever, if the first payment occurs one year from today and the discount rate is 11 percent compounded daily? What is the value today if the first payment occurs four years from today?
+Original Answer: The cash flows in this problem occur every two years, so we need to find the effective two year rate. One way to find the effective two year rate is to use an equation similar to the EAR, except use the number of days in two years as the exponent. (We use the number of days in two years since it is daily compounding; if monthly compounding was assumed, we would use the number of months in two years.) So, the effective two-year interest rate is: Effective 2-year rate \\(=\\left[1+\\left(.11/365\\right)\\right]^[365(2)]-1=.2460\\) or \\(24.60\\%\\) We can use this interest rate to find the PV of the perpetuity. Doing so, we find: \\(\\text[PV]=\\$7,500\\left/.2460\\right.\\)\\(=\\$30,483.41\\) \n This is an important point: Remember that the PV equation for a perpetuity (and an ordinary annuity) tells you the PV one period before the first cash flow. In this problem, since the cash flows are two years apart, we have found the value of the perpetuity one period (two years) before the first payment, which is one year ago. We need to compound this value for one year to find the value today. The value of the cash flows today is: \\(\\text[PV]=\\$30,483.41(1+.11/365)^[365]=\\$34,027.40\\) The second part of the question assumes the perpetuity cash flows begin in four years. In this case, when we use the PV of a perpetuity equation, we find the value of the perpetuity two years from today. So, the value of these cash flows today is: \\(\\text[PV]=\\$30,483.41/(1+.11/365)^[2(365)]=\\$24,464.32\\)
+Context: An investment pays $7,500 every _other_ year forever. The discount rate is 11 percent compounded daily.
+Generated Question: What is the value of the investment if the first payment occurs one year from today? (Unit: dollar)
+Answer: 34027.40
+Generated Question: What is the value of the investment if the first payment occurs four year from today? (Unit: dollar)
+Answer: 24464.32
+
+Example 5:
+Original Question: An investment offers $4,600 per year for 15 years, with the first payment occurring one year from now. If the required return is 8 percent, what is the value of the investment? What would the value be if the payments occurred for 40 years? For 75 years? Forever?
+Original Answer: To find the PVA, we use the equation: PVA=C([1–[1/(1+r)]^t]/r) \n PVA@15 yrs: PVA = $4,600[[1 – (1/1.08)^15 ] / .08] = $39,373.60  \n PVA@40 yrs: PVA = $4,600[[1 – (1/1.08)^40 ] / .08] = $54,853.22  \n PVA@75 yrs: PVA = $4,600[[1 – (1/1.08)^75 ] / .08] = $57,320.99 \n To find the PV of a perpetuity, we use the equation: PV = C / r \n PV = $4,600 / .08 = $57,500.00 \n Notice that as the length of the annuity payments increases, the present value of the annuity approaches the present value of the perpetuity. The present value of the 75 year annuity and the present value of the perpetuity imply that the value today of all perpetuity payments beyond 75 years is only $179.01.
+Context: An investment offers $4,600 per year for 15 years, with the first payment occurring one year from now. The required return is 8 percent
+Generated Question: What is the value of the investment? (Unit: dollar)
+Answer: 39373.60
+Generated Question: If the payments occurred for 40 years, what is the value of the investment? (Unit: dollar)
+Answer: 54853.22
+Generated Question: If the payments occurred for 75 years, what is the value of the investment? (Unit: dollar)
+Answer: 57320.99
+Generated Question: If the payments occurred forever, what is the value of the investment? (Unit: dollar)
+Answer: 57500.00
+
+Given the above instructions and examples, please use the following question-answer pair to generate at least one question with a clear answer and context.
+Original Question: {orig_ques}
+Original Answer: {orig_ans}

@@ -1,0 +1,11 @@
+Original Question: {orig_ques}
+Original Answer: {orig_ans}
+
+Context of Statement: {context}
+Statement: {question}
+
+Given the above original question and answer, please answer the following two questions.
+Q1: Is the statement definitely true given the original question and answer?
+Q2: Does the context extract the essential background information in the original question?
+
+Your Answer to Q1 and Q2 (Yes or No, no explanation required):

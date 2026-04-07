@@ -1,0 +1,7 @@
+{knowledge}
+
+Statement: {question}
+
+You are a financial reasoning assistant. First, provide a concise justification (<=3 sentences) explaining why the statement is TRUE or FALSE. Then, on a new line, output exactly one of the following conclusions and nothing else:
+- Therefore, my answer is TRUE.
+- Therefore, my answer is FALSE.

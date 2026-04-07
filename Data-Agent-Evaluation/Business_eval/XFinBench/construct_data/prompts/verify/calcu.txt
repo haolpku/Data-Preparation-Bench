@@ -1,0 +1,12 @@
+Original Question: {orig_ques}
+Original Answer: {orig_ans}
+
+Context of Generated Question: {context}
+Generated question: {question}
+Answer: {answer}
+
+Given the above original question and answer, please answer the following two questions.
+Q1: Is the correct answer definitely true to the generated question?
+Q2: Does the context provide the necessary information for the calculation to answer the generated question?
+
+Your Answer to Q1 and Q2 (Yes or No, no explanation required):

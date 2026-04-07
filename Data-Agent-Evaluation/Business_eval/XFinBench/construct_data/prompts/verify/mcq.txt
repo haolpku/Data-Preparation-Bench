@@ -1,0 +1,16 @@
+Original Question: {orig_ques}
+Original Answer: {orig_ans}
+
+Context of Generated Question: {context}
+Generated Question: {question}
+Candidate Choices:
+{choices}
+Correct Answer: {answer}
+
+Given the above original question and answer, please answer the following two questions.
+Q1: Is the correct answer definitely true to the generated question?
+Q2: Are the other two misleading answers within candidate choices definitely false to the generated question?
+Q3: Are the three candidate choices mutually exclusive but sharing the similar wording and length with each other?
+Q4: Does the context extract the essential background information in the original question?
+
+Your Answer to Q1, Q2, Q3 and Q4 (Yes or No, no explanation required):

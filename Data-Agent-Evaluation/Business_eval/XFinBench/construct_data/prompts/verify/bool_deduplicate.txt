@@ -1,0 +1,6 @@
+Context of Statements: {context_1}
+Statement 1: {statement_1}
+Statement 2: {statement_0}
+
+Please determine whether Statement 1 provides direct evidence to support that Statement 2 is false.
+Your Answer (Yes or No):

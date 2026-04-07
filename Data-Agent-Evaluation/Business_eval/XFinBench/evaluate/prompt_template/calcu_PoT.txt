@@ -1,0 +1,4 @@
+{knowledge}
+
+Question: {question}
+Please generate a Python program to answer the given question.\n```python\ndef solution():

@@ -1,0 +1,6 @@
+{knowledge}
+
+Question: {question}
+Choices:\n{choices}
+Which one of the above choices is the most appropriate to answer the question? Please output your answer starting with 'Therefore, my answer is' at the end.
+Let's think step by step.

@@ -1,0 +1,56 @@
+Please rewrite a question-answer pair into one or more statement(s) which is/are false. Specifically,
+1. The statement(s) should be generated from the original question-answer pair and must be false given the content of the question-answer pair.
+2. None of the following expressions is allowed in the statement: (1) unclear pronoun; (2) in/given/according to the chapter/figure/table; (3) conjunctions of causality like since, because and so on.
+3. You should extract the context of the original question. The context usually introduces the background of the generated statement(s). Note that: (1) the context must NOT be question; (2) there should NOT be duplicated or contradictory information between the context and the statement.
+4. You are allowed to generate two or more statements from one question-answer pair. Under this case, the statements should be independent of each other, with as little overlap as possible.
+
+Example 1:
+Original Question: Suppose that a bond portfolio with a duration of 12 years is hedged using a futures contract in which the underlying asset has a duration of four years. What is likely to be the impact on the hedge of the fact that the 12-year rate is less volatile than the four-year rate?
+Original Answer: Duration-based hedging procedures assume parallel shifts in the yield curve. Since the 12-year rate tends to move by less than the 4-year rate, the portfolio manager may find that he or she is over-hedged.
+Context: Suppose that a bond portfolio with a duration of 12 years is hedged using a futures contract in which the underlying asset has a duration of four years.
+Statement: Considering duration-based hedging procedures assume parallel shifts in the yield curve, the portfolio manager may find that he or she is under-hedged.
+Answer: False
+
+Example 2:
+Original Question: What is meant by the delta of a stock option?
+Original Answer: The delta of a stock option measures the sensitivity of the option price to the price of the stock when small changes are considered. Specifically, it is the ratio of the change in the price of the stock option to the change in the price of the underlying stock.
+Context: Consider the delta of a stock option.
+Statement: The delta of a stock option measures the sensitivity of the option price to the price of the stock when big changes are considered.
+Answer: False
+
+Example 3:
+Original Question: The treasurer of a corporation is trying to choose between options and forward contracts to hedge the corporation's foreign exchange risk. Discuss the advantages and disadvantages of each.
+Original Answer: Forward contracts lock in the exchange rate that will apply to a particular transaction in the future. Options provide insurance that the exchange rate will not be worse than some level. The advantage of a forward contract is that uncertainty is eliminated as far as possible. The disadvantage is that the outcome with hedging can be significantly worse than the outcome with no hedging. This disadvantage is not as marked with options. However, unlike forward contracts, options involve an up-front cost.
+Context: The treasurer of a corporation is trying to choose between options and forward contracts to hedge the corporation's foreign exchange risk.
+Statement: When using forward contracts for hedging, the outcome is definitely better than the outcome with no hedging.
+Answer: False
+Statement: Using forward contracts to hedge the foreign exchange risk involve an up-front cost.
+Answer: False
+
+Example 4:
+Original Question: The term structure of interest rates is upward sloping. Put the following in order of magnitude: \n (a) _The five-year zero rate_ \n (b) _The yield on a five-year coupon-bearing bond_ \n (c) _The forward rate corresponding to the period between 4.75 and 5 years in the future_ \n What is the answer to this question when the term structure of interest rates is downward sloping?
+Original Answer: When the term structure is upward sloping, \(c>a>b\). When it is downward sloping, \(b>a>c\).
+Context: The term structure of interest rates is upward sloping.
+Statement: The five-year zero rate is larger than the forward rate corresponding to the period between 4.75 and 5 years in the future.
+Answer: False
+Statement: The yield on a five-year coupon-bearing bond is larger than the forward rate corresponding to the period between 4.75 and 5 years in the future.
+Answer: False
+Statement: When it is downward sloping, the yield on a five-year coupon-bearing bond is smaller than the five-year zero rate.
+Answer: False
+Statement: When it is downward sloping, The five-year zero rate is smaller than the forward rate corresponding to the period between 4.75 and 5 years in the future.
+Answer: False
+
+Example 5:
+Original Question: For each of the following scenarios, discuss whether profit opportunities exist from trading in the stock of the firm under the conditions that (1) the market is not weak form efficient, (2) the market is weak form but not semistrong form efficient, (3) the market is semistrong form but not strong form efficient, and (4) the market is strong form efficient. **a.** The stock price has risen steadily each day for the past 30 days. **b.** The financial statements for a company were released three days ago, and you believe you've uncovered some anomalies in the company's inventory and cost control reporting techniques that are causing the firm's true liquidity strength to be understated. **c.** You observe that the senior managers of a company have been buying a lot of the company's stock on the open market over the past week.
+Original Answer: \\(a\\). If the market is not weak form efficient, then this information could be acted on and a profit earned from following the price trend. Under (2), (3), and (4), this information is fully impounded in the current price and no abnormal profit opportunity exists.\n\n \\(b\\). Under (2), if the market is not semi-strong form efficient, then this information could be used to buy the stock \"cheap\" before the rest of the market discovers the financial statement anomaly. Since (2) is stronger than (1), both imply that a profit opportunity exists; under (3) and (4), this information is fully impounded in the current price and no profit opportunity exists.\n \\(c\\).  Under (3), if the market is not strong form efficient, then this information could be used as a profitable trading strategy, by noting the buying activity of the insiders as a signal that the stock is underpriced or that good news is imminent. Since (1) and (2) are weaker than (3), all three imply that a profit opportunity exists. Note that this assumes the individual who sees the insider trading is the only one who sees the trading. If the information about the trades made by company management is public information, it will be discounted in the stock price and no profit opportunity exists. Under (4), this information does not signal any profit opportunity for traders; any pertinent information the manager-insiders may have is fully reflected in the current share price.
+Context: Consider profit opportunities exist from trading in the stock of the firm.
+Statement: In a market that is weak form efficient but not semistrong form efficient, a profit could be earned from acting on the information of a stock price that has risen steadily each day for the past 30 days.
+Answer: False
+Statement: In a market that is strong form efficient, a profit could be earned from acting on the pertinent information the manager-insiders may have.
+Answer: False
+Statement: In a market that is semistrong form but not strong form efficient, there is no profit opportunity on the information that you observe that the senior managers of a company have been buying a lot of the company's stock on the open market over the past week.
+Answer: False
+
+Given the above instructions and examples, please use the following question-answer pair to generate at least one statement with a clear answer and context.
+Original Question: {orig_ques}
+Original Answer: {orig_ans}

@@ -1,0 +1,4 @@
+{knowledge}
+
+Question: {question}
+Please answer the above question and output your final answer starting with 'Therefore, my answer is', where you store you final answer into '[]'.
