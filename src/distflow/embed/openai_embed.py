@@ -3,14 +3,14 @@ from __future__ import annotations
 import asyncio
 from typing import Any, override
 
+from openai import AsyncOpenAI
+from openai.types.create_embedding_response import CreateEmbeddingResponse
+
 from distflow.data.types import MessageData
 from distflow.embed.base import BaseEmbed
 from distflow.embed.types import EmbeddingInputItem, EmbeddingResult
 from distflow.utils import logger
 from distflow.utils.timing import timing_context
-
-from openai import AsyncOpenAI
-from openai.types.create_embedding_response import CreateEmbeddingResponse
 
 
 class OpenAIEmbed(BaseEmbed):
@@ -100,9 +100,7 @@ class OpenAIEmbed(BaseEmbed):
             )
         logger.info("OpenAI 异步客户端初始化完成")
 
-    def _format_messages(
-        self, messages: list[MessageData]
-    ) -> list[dict[str, Any]]:
+    def _format_messages(self, messages: list[MessageData]) -> list[dict[str, Any]]:
         """将消息列表格式化为 API 可用的字典列表.
 
         Args:
@@ -119,9 +117,7 @@ class OpenAIEmbed(BaseEmbed):
             formatted.append({"role": msg.role, "content": content})
         return formatted
 
-    def _build_request_body(
-        self, messages: list[dict[str, Any]]
-    ) -> dict[str, Any]:
+    def _build_request_body(self, messages: list[dict[str, Any]]) -> dict[str, Any]:
         """构造 vLLM chat embeddings 请求 body.
 
         Args:
@@ -244,7 +240,5 @@ class OpenAIEmbed(BaseEmbed):
                         )
                         await asyncio.sleep(0.1 * (attempt + 1))
                     else:
-                        logger.error(
-                            f"Embedding 请求最终失败: {type(e).__name__}: {e}"
-                        )
+                        logger.error(f"Embedding 请求最终失败: {type(e).__name__}: {e}")
                         return None
