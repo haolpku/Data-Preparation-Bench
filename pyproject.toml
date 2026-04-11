@@ -1,6 +1,6 @@
 [project]
 name = "distflow"
-version = "1.0.3"
+dynamic = ["version"]
 description = "Distance Computation Package for Data Preparation Bench"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -37,9 +37,8 @@ profile = "black"
 line_length = 88
 src_paths = ["src", "tests"]
 
-[build-system]
-requires = ["uv_build>=0.9.5,<0.12"]
-build-backend = "uv_build"
+[tool.hatch.version]
+source = "vcs"
 
-[tool.uv]
-index-url = "https://mirrors.aliyun.com/pypi/simple"
+[tool.hatch.build.targets.wheel]
+packages = ["src/distflow"]
