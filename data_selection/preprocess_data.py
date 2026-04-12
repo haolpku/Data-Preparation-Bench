@@ -176,14 +176,6 @@ class DataPreprocessor:
             processed_data = DataPreprocessor._convert_mapping_to_alpaca(raw_data, strategy)
 
         cls._save_data(processed_data, output_path, sample_path)
-        # with open(output_path, 'w', encoding='utf-8') as f_out:
-        #     for item in processed_data:
-        #         f_out.write(json.dumps(item, ensure_ascii=False) + '\n')
-        
-        # sample_processed_data = processed_data[:10]
-        # with open(sample_path, 'w', encoding='utf-8') as f_out:
-        #     for item in sample_processed_data:
-        #         f_out.write(json.dumps(item, ensure_ascii=False) + '\n')
 
     @staticmethod
     def _convert_mapping_to_alpaca(raw_data, strategy):

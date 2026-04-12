@@ -5,12 +5,10 @@ import shlex
 
 import subprocess
 import logging
-import shutil
 import json
 from pathlib import Path
 from datetime import datetime
 from typing import Dict, Any
-from preprocess_data import DataPreprocessor
 
 CURRENT_FILE = Path(__file__).resolve()
 PROJECT_ROOT = CURRENT_FILE.parent
@@ -72,7 +70,6 @@ class ResearchPlatform:
         self.train_cfg = self._load_yaml(args.train_config_path)
         self.eval_cfg = self._load_yaml(args.eval_config_path)
 
-        # self.data_preprocessor = DataPreprocessor()
         self.timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         self.train_file = Path(args.train_file).absolute()
         if "args" in self.filter_cfg:
@@ -110,7 +107,7 @@ class ResearchPlatform:
             logger.info("🔍 Starting data filtering stage...")
             if not self._run_filter(): return
 
-        # 2. Training
+        # 2. Training & Evaluation
         if any(s in self.stage for s in ["train", "eval"]):
             if not self._run_train_and_eval(): return
             
@@ -126,8 +123,6 @@ class ResearchPlatform:
             args_list.append(f"--{prefix} {shlex.quote(str(data))}")
 
     def build_filter_command(self):
-        env_name = self.filter_cfg.get("env", "default_env")
-        
         args_list = []
         for key, value in self.filter_cfg["args"].items():
             self.add_args(args_list, key, value)
@@ -140,7 +135,6 @@ class ResearchPlatform:
         return cmd
 
     def _run_filter(self):
-        method = Path(self.args.filter_config_path).stem
         cwd = PROJECT_ROOT / "baselines" / self.filter_cfg["method"]
         log_p = self.filter_run_dir / "filter.log"
         
@@ -181,7 +175,6 @@ class ResearchPlatform:
         return cmd
 
     def _run_train_and_eval(self):
-        t_cfg = self.train_cfg
         f_cfg = self.filter_cfg
         cwd = PROJECT_ROOT
         filtered_file = None
@@ -203,7 +196,6 @@ class ResearchPlatform:
         if filtered_file is None or not os.path.exists(filtered_file):
             filtered_file = self.train_file
         
-        dataset_name = self.train_file.parent.name
         cmd = self.build_train_command(
             train_file=str(filtered_file),
             output_root=str(self.train_and_eval_run_dir)

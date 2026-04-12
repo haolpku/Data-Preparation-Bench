@@ -1,7 +1,7 @@
-dataset: dataset_cherry_llm_20260406_174313
-dataset_dir: /home/hxy/dcai/data_selection/output/data_selection/dataset_cherry_llm_20260406_174313
-output_dir: /home/hxy/dcai/data_selection/output/train_and_eval/dataset_cherry_llm_20260406_174313/model
-model_name_or_path: Qwen/Qwen2.5-7B
+dataset: exp_abc123
+dataset_dir: output\experiments\exp_Qwen-Qwen2.5-0.5B_20260413_003435\train\dataset
+output_dir: output\experiments\exp_Qwen-Qwen2.5-0.5B_20260413_003435\train\model
+model_name_or_path: Qwen/Qwen2.5-0.5B
 trust_remote_code: true
 stage: sft
 do_train: true
@@ -12,7 +12,7 @@ template: qwen3_nothink
 cutoff_len: 2048
 max_samples: 1000
 preprocessing_num_workers: 16
-dataloader_num_workers: 4
+dataloader_num_workers: 0
 logging_steps: 10
 save_steps: 500
 plot_loss: true
