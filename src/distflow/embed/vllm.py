@@ -72,7 +72,7 @@ class VllmEmbed(BaseEmbed):
         return self._tokenizer
 
     @override
-    def embed(self, dataset: list[EmbeddingInputItem]) -> list[EmbeddingResult]:
+    def embed(self, dataset: list[EmbeddingInputItem]) -> list[EmbeddingResult | None]:
         """异步执行嵌入计算.
 
         Args:

@@ -44,6 +44,9 @@ class AlpacaFormatter:
         )
 
 
+from typing import Any, cast
+
+
 class ShareGptFormatter:
     def __init__(self, *, conversations_key: str) -> None:
         self.conversations_key = conversations_key
@@ -52,22 +55,58 @@ class ShareGptFormatter:
         assert (
             self.conversations_key in raw_item
         ), f"Conversations key '{self.conversations_key}' not found in raw item"
+
         conversations = raw_item[self.conversations_key]
         assert isinstance(
             conversations, list
         ), f"Conversations must be a list, got {type(conversations).__name__}: {conversations}"
 
         messages: list[MessageData] = []
+
         for conv in conversations:
-            if isinstance(conv, dict):
+            if not isinstance(conv, dict):
+                continue
+
+            # 检测格式类型并提取字段
+            role = None
+            content = None
+
+            # 标准格式: {"role": "user", "content": "..."}
+            if "role" in conv and "content" in conv:
                 role = conv.get("role")
                 content = conv.get("content")
-                if role is not None and content is not None:
-                    messages.append(
-                        cast(MessageData, {"role": role, "content": content})
-                    )
+
+            # ShareGPT 格式: {"from": "human", "value": "..."}
+            elif "from" in conv and "value" in conv:
+                from_field = conv.get("from")
+                content = conv.get("value")
+
+                assert isinstance(from_field, str) and isinstance(
+                    content, str
+                ), "from和content必须都是str类型"
+
+                role_mapping = {
+                    "human": "user",
+                    "gpt": "assistant",
+                    "system": "system",
+                    "user": "user",
+                    "assistant": "assistant",
+                }
+                role = role_mapping.get(from_field, from_field)
+
+            # 添加到 messages
+            if role is not None and content is not None:
+                messages.append(cast(MessageData, {"role": role, "content": content}))
 
         return DatasetProcessOutputItem(
             messages=messages,
-            meta={"conversations_key": self.conversations_key, "raw_item": raw_item},
+            meta={
+                "conversations_key": self.conversations_key,
+                "raw_item": raw_item,
+                "detected_format": (
+                    "sharegpt"
+                    if any(isinstance(c, dict) and "from" in c for c in conversations)
+                    else "standard"
+                ),
+            },
         )

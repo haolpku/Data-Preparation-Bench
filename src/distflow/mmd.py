@@ -30,6 +30,7 @@ class MMDDistance:
         kernel_type: Literal["RBF"] = "RBF",
         bias: bool = True,
         rbf_sigma: float = 1.0,
+        max_fail_ratio: float = 0.02,
     ) -> None:
         """初始化 MMD 距离计算器.
 
@@ -37,12 +38,14 @@ class MMDDistance:
             kernel_type: 核函数类型，目前仅支持 "RBF"
             embedder: 嵌入器，用于将数据转换为向量表示
             bias: 是否使用有偏估计，默认为 True
+            max_fail_ratio: 可允许的嵌入失败比例，超过则抛出异常
         """
         self.embedder = embedder
         self.kernel_type = kernel_type
         assert kernel_type == "RBF", "目前仅支持 RBF 核函数"
         self.bias = bias
         self.rbf_sigma = rbf_sigma
+        self.max_fail_ratio = max_fail_ratio
 
     def _compute_kernel(self, x: list[list[float]], y: list[list[float]]) -> np.ndarray:
         assert all(
@@ -67,6 +70,41 @@ class MMDDistance:
 
         return k.astype(np.float64)
 
+    def _filter_embeddings(
+        self,
+        results: list[Any],
+        dataset_name: str,
+    ) -> list[list[float]]:
+        """过滤掉嵌入失败的 None 结果并检查失败比例.
+
+        Args:
+            results: embed() 返回的结果列表
+            dataset_name: 数据集名称，用于日志
+
+        Returns:
+            成功的嵌入向量列表
+
+        Raises:
+            RuntimeError: 失败比例超过 max_fail_ratio 阈值
+        """
+        total = len(results)
+        success = [r.embedding for r in results if r is not None]
+        fail_count = total - len(success)
+
+        if fail_count > 0:
+            fail_ratio = fail_count / total
+            logger.warning(
+                f"{dataset_name} 数据集嵌入失败 {fail_count}/{total} "
+                f"(比例: {fail_ratio:.2%})"
+            )
+            if fail_ratio > self.max_fail_ratio:
+                raise RuntimeError(
+                    f"{dataset_name} 数据集嵌入失败比例 {fail_ratio:.2%} 超过阈值 "
+                    f"{self.max_fail_ratio:.2%}"
+                )
+
+        return success
+
     def compute(
         self, src: list[DatasetProcessOutputItem], tgt: list[DatasetProcessOutputItem]
     ) -> list[MetricsResult]:
@@ -88,9 +126,10 @@ class MMDDistance:
             embedded_tgt_results = self.embedder.embed(tgt)
             logger.debug(f"目标数据集嵌入完成, 共 {len(embedded_tgt_results)} 条")
 
-        # 提取嵌入向量
-        embedded_src = [item.embedding for item in embedded_src_results]
-        embedded_tgt = [item.embedding for item in embedded_tgt_results]
+        # 处理可能的 None 结果并检查失败比例
+        embedded_src = self._filter_embeddings(embedded_src_results, "src")
+        embedded_tgt = self._filter_embeddings(embedded_tgt_results, "tgt")
+
         logger.info(
             f"嵌入向量提取完成, 维度: {len(embedded_src[0]) if embedded_src else 0}"
         )
@@ -134,6 +173,7 @@ class MMDDistance:
             if self.bias:
                 # 有偏 MMD 估计
                 mmd_value = k_xx_mean + k_yy_mean - 2 * k_xy_mean
+                mmd_value = np.sqrt(mmd_value)
                 logger.debug(f"有偏 MMD 估计: {mmd_value:.6f}")
             else:
                 # 无偏 MMD 估计：排除对角线元素
@@ -142,6 +182,7 @@ class MMDDistance:
                     + (tgt_tgt.sum() - n_tgt) / (n_tgt * (n_tgt - 1))
                     - 2 * k_xy_mean
                 )
+                mmd_value = np.sqrt(mmd_value)
                 logger.debug(f"无偏 MMD 估计: {mmd_value:.6f}")
 
         # 获取核函数参数（如 RBF sigma）

@@ -112,7 +112,7 @@ class SentenceTransformersEmbed(BaseEmbed):
         return texts
 
     @override
-    def embed(self, dataset: list[EmbeddingInputItem]) -> list[EmbeddingResult]:
+    def embed(self, dataset: list[EmbeddingInputItem]) -> list[EmbeddingResult | None]:
         """执行嵌入计算.
 
         Args:

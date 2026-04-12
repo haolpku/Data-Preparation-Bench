@@ -75,7 +75,7 @@ class CachedEmbed(BaseEmbed):
             }
         return dict_to_hash(key_payload)
 
-    def embed(self, dataset: list[EmbeddingInputItem]) -> list[EmbeddingResult]:
+    def embed(self, dataset: list[EmbeddingInputItem]) -> list[EmbeddingResult | None]:
         """异步执行嵌入计算，使用 Redis 缓存.
 
         Args:
@@ -131,6 +131,9 @@ class CachedEmbed(BaseEmbed):
             # 并发写入缓存
             write_tasks: list[Coroutine[Any, Any, bool]] = []
             for key, idx, result in zip(missing_keys, missing_indices, new_results):
+                if result is None:
+                    logger.warning(f"嵌入计算失败，跳过缓存: idx={idx}")
+                    continue
                 cache_value = {
                     "embedding": result.embedding,
                     "meta": result.meta,
