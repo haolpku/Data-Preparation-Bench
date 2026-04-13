@@ -65,27 +65,36 @@ class ResearchPlatform:
     def __init__(self, args):
         self.args = args
         self.stage = args.stage
-        self.resume_id = args.resume_id or None
         self.filter_cfg = self._load_yaml(args.filter_config_path)
         self.train_cfg = self._load_yaml(args.train_config_path)
         self.eval_cfg = self._load_yaml(args.eval_config_path)
 
         self.timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        self.train_file = Path(args.train_file).absolute()
+        self.train_files = args.train_files
         if "args" in self.filter_cfg:
             for key, value in self.filter_cfg["args"].items():
                 self.filter_cfg[key] = value
         
-        filter_id = self._generate_filter_id()
-        self.filter_run_dir = (Path(self.filter_cfg['output_root']) / "data_selection" / filter_id).absolute()
+        self.filter_id = self._generate_filter_id()
+        self.filter_run_dir = (Path(self.args.output_root) / "data" / self.filter_id).absolute()
         self.filter_run_dir.mkdir(parents=True, exist_ok=True)
-        self.train_and_eval_run_dir = (Path(self.filter_cfg['output_root']) / "train_and_eval" / filter_id).absolute()
+
+        self.train_eval_id = self._generate_train_eval_id()
+        self.train_and_eval_run_dir = (Path(self.args.output_root) / "experiments" / self.train_eval_id).absolute()
         self.train_and_eval_run_dir.mkdir(parents=True, exist_ok=True)
         self.env = self._prepare_env()
 
+    def _generate_train_eval_id(self) :
+        model_name = self.train_cfg.get(["model_name_or_path"], "")
+        model_name = f"{model_name.replace('/', '-')}"
+        if "train" in self.args.stage:
+            exp_id = f"exp_{model_name}_{self.timestamp}"
+        else:
+            exp_id = f"exp_{self.timestamp}"
+        return exp_id
+
     def _generate_filter_id(self) -> str:
-        if self.resume_id is not None: return self.resume_id
-        data = self.train_file.parent.stem
+        data = Path(self.train_files).parent.stem
         method = self.filter_cfg['method']
         return f"{data}_{method}_{self.timestamp}"
 
@@ -127,7 +136,7 @@ class ResearchPlatform:
         for key, value in self.filter_cfg["args"].items():
             self.add_args(args_list, key, value)
         self.add_args(args_list, "output_root", self.filter_run_dir)
-        self.add_args(args_list, "train_file", self.train_file)
+        self.add_args(args_list, "train_files", self.train_files)
         cmd = (
             f"python start.py "
             + " ".join(args_list)
@@ -156,21 +165,20 @@ class ResearchPlatform:
         for key, value in kwargs.items():
             self.add_args(args_list, key, value)
 
-        python_exec = self.get_conda_python("bench")
+        python_exec = self.get_conda_python(self.args.env_name)
         cmd = (
             f"{python_exec} train_eval.py "
             + " ".join(args_list)
         )
-        mode = []
         if "train" in self.args.stage:
-            mode.append("train")
+            cmd += f" --train_config_path {self.args.train_config_path}"
+            
         if "eval" in self.args.stage:
-            mode.append("eval")
-        mode = ",".join(mode)
+            cmd += f" --eval_config_path {self.args.eval_config_path}"
+
         cmd += (
             f" --train_config_path {self.args.train_config_path}"
             f" --eval_config_path {self.args.eval_config_path}"
-            f" --mode {mode}"
         )
         return cmd
 
@@ -178,7 +186,7 @@ class ResearchPlatform:
         f_cfg = self.filter_cfg
         cwd = PROJECT_ROOT
         filtered_file = None
-        if "filter" in self.stage or self.resume_id is not None:
+        if "filter" in self.stage:
             filtered_file = self.filter_run_dir / f_cfg['filtered_file'] 
 
             if  f_cfg["method"] == "dfa":
@@ -194,22 +202,24 @@ class ResearchPlatform:
         
         log_p = self.train_and_eval_run_dir / "train_eval.log"
         if filtered_file is None or not os.path.exists(filtered_file):
-            filtered_file = self.train_file
+            filtered_file = self.train_files
         
         cmd = self.build_train_command(
-            train_file=str(filtered_file),
-            output_root=str(self.train_and_eval_run_dir)
+            train_files=str(filtered_file),
+            exp_id=str(self.train_eval_id),
+            output_root=str(self.args.output_root)
         )
         return TaskRunner.run_cmd(cmd, cwd, self.env, log_p)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--filter_config_path", default="configs/dfa.yaml")
-    parser.add_argument("--train_config_path", default="configs/train_qwen2.5.yaml")
-    parser.add_argument("--eval_config_path", default="configs/eval.yaml")
-    parser.add_argument("--train_file", type=str, required=True)
+    parser.add_argument("--filter_config_path", default=None)
+    parser.add_argument("--train_config_path", default=None)
+    parser.add_argument("--eval_config_path", default=None)
+    parser.add_argument("--train_files", default=None, nargs='+',)
+    parser.add_argument("--output_root", type=str, default="./output")
     parser.add_argument("--stage", default="all", help="filter, train, eval")
-    parser.add_argument("--resume_id", default=None, help="previous experiment ID for connecting the subsequent steps.")
+    parser.add_argument("--env_name", default="bench")
     args = parser.parse_args()
     
     platform = ResearchPlatform(args)

@@ -26,13 +26,13 @@ def register_dataset_to_train_dir(
     """
     将过滤后的数据集注册到 LLaMA Factory 的训练临时目录中
     完全符合你的最终目录规范：
-    1.  从 output/data/exp_id/data.jsonl 复制
-    2.  重命名为 exp_id.jsonl
+    1.  将数据集文件复制
+    2.  重命名
     3.  自动生成/更新 dataset_info.json
     4.  返回 LF 可用的 ds_name
     """
     source_path = Path(source_data_path)
-    filter_id = source_path.parent.name
+    filter_id = f"{source_path.parent.name}_{source_path.name}"
     info_path = dataset_tmp_dir / "dataset_info.json"
     
     # 执行复制并重命名
@@ -277,13 +277,13 @@ def main():
     )
     parser.add_argument("--output_root", type=str, default="./output/experiments")
     parser.add_argument("--gpu_id", default="0", help="gpu id, e.g., 0 or 0,1,2")
-    
+    parser.add_argument("--exp_id", default=None)
     args = parser.parse_args()
 
     # Setup environment
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     
-    exp_id = None
+    exp_id = args.exp_id
     model_save_dir = None
     model_name = None
     if args.train_files is not None and args.train_config_path is not None:
@@ -291,7 +291,8 @@ def main():
         with open(args.train_config_path, "r", encoding="utf-8") as f:
             train_config = yaml.safe_load(f)
         model_name = train_config["model_name_or_path"]
-        exp_id = f"exp_{model_name.replace('/', '-')}_{timestamp}"
+        if not exp_id:
+            exp_id = f"exp_{model_name.replace('/', '-')}_{timestamp}"
         
         train_exp_dir = Path(args.output_root) / exp_id / "train"
         train_exp_dir.mkdir(parents=True, exist_ok=True)   
@@ -300,7 +301,7 @@ def main():
 
     if args.eval_config_path is not None:
         print("🛠️  正在执行评估逻辑...")
-        if exp_id is None:
+        if not exp_id:
             exp_id = f"exp_{timestamp}"
         eval_exp_dir = Path(args.output_root) / exp_id / "eval"
         eval_exp_dir.mkdir(parents=True, exist_ok=True)   
