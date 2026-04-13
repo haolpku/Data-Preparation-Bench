@@ -19,11 +19,7 @@
 ```bash
 # 克隆本项目（若未克隆）
 git clone https://github.com/haolpku/Data-Preparation-Bench.git
-cd Data-Preparation-Bench/data_selection
-
-# 安装git子模块（核心依赖）
-git submodule init
-git submodule update
+cd data_selection
 ```
 
 ### 2\. 数据筛选Baseline环境
@@ -33,7 +29,7 @@ git submodule update
 #### 2\.1 DataFlow\-Agent
 
 ```bash
-cd Data-Preparation-Bench/data_selection # 回到该目录
+cd data_selection # 回到该目录
 # 创建并激活环境
 conda create -n dfa python==3.11 -y
 conda activate dfa
@@ -48,9 +44,9 @@ pip install -e .
 #### 2\.2 DataComp for LM
 
 ```bash
-cd Data-Preparation-Bench/data_selection # 回到该目录
+cd data_selection # 回到该目录
 # 创建并激活环境
-conda create -n dclm python==3.10 -y
+conda create -n dclm python==3.11 -y
 conda activate dclm
 
 # 安装依赖
@@ -72,9 +68,9 @@ pip install ray
 #### 2\.3 Cherry\_llm
 
 ```bash
-cd Data-Preparation-Bench/data_selection # 回到该目录
+cd data_selection # 回到该目录
 # 创建并激活环境
-conda create -n cherry_llm python==3.10 -y 
+conda create -n cherry_llm python==3.11 -y 
 conda activate cherry_llm
 
 # 安装依赖
@@ -87,7 +83,7 @@ pip install -r requirements.txt
 ### 3\. 训练与评估环境（必装）
 
 ```bash
-cd Data-Preparation-Bench/data_selection # 回到该目录
+cd data_selection # 回到该目录
 # 创建并激活环境
 conda create -n bench python=3.11 -y
 conda activate bench

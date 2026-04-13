@@ -1,0 +1,3 @@
+[submodule "data_selection/third_party/LlamaFactory"]
+	path = data_selection/third_party/LlamaFactory
+	url = git@github.com:hiyouga/LlamaFactory.git
