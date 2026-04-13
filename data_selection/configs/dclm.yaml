@@ -1,0 +1,8 @@
+output_root: "./output"
+
+method: "dclm"
+args:
+  train_file: "dataset/messy/lmsys-chat-1m/lmsys-chat-1m_extracted_0.jsonl"
+  output_dir: "./output"
+  filtered_file: "final_filtered_file.jsonl"
+  name: "dclm"
