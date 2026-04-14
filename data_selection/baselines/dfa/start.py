@@ -108,8 +108,8 @@ def parallel_exec_node(pipeline_file_path, state):
     
     # Construct parallel tasks
     tasks = []
-    for chunk_file in chunk_files:
-        i = chunk_file.split('chunk_')[-1].split('.jsonl')[0]
+    for i, chunk_file in enumerate(chunk_files):
+        # i = chunk_file.split('chunk_')[-1].split('.jsonl')[0]
         gpu_id = int(i) % num_gpus
         tasks.append((chunk_file, gpu_id, filter_code, i, dataset_path))
     

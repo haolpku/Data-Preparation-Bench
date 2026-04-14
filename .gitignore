@@ -10,3 +10,9 @@ wheels/
 .venv
 
 uv.lock
+data_selection/output/
+data_selection/third_party/
+data_selection/dataset/
+data_selection/baselines/dfa/dataflow_cache/
+.vscode/
+.gitignore

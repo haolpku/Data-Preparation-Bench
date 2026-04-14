@@ -109,7 +109,6 @@ def _run_llamafactory(config_path, gpu_id=0):
     has_cuda = torch.cuda.is_available()
     use_cpu = not has_cuda or str(gpu_id).lower() == "cpu"
     if use_cpu:
-        # ✅ CPU 模式：强制不使用 GPU
         env["CUDA_VISIBLE_DEVICES"] = "-1"
         train_cmd = ["llamafactory-cli", "train", str(config_path)]
         print("🔵 Running on CPU mode")
@@ -120,7 +119,7 @@ def _run_llamafactory(config_path, gpu_id=0):
             train_cmd = [
                 "torchrun", 
                 f"--nproc_per_node={nproc}", 
-                "third_party/LlamaFactory/src/train.py", # 指向子模块路径
+                "third_party/LlamaFactory/src/train.py", 
                 str(config_path)
             ]
         else:

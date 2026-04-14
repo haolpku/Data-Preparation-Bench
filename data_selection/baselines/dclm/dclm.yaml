@@ -1,4 +1,4 @@
-- source: lmsys-chat-1m_extracted_0
+- source: openhermes2_5_alpaca
   steps:
   - func: url_removal_modifier
   - func: newline_removal_modifier

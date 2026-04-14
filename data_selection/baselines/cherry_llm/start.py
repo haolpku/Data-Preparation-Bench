@@ -165,9 +165,9 @@ def main():
         run_command(
             f"conda run -n bench python {train_entry} "
             f"--train_config_path {args.train_config_path} "
-            f"--train_file {PRE_JSON} "
+            f"--train_files {PRE_JSON} "
             f"--output_root {PRE_MODEL_DIR} "
-            f"--mode train ",
+            f"--exp_id cherry_llm ",
             cwd=PROJECT_ROOT
         )
     
@@ -177,14 +177,14 @@ def main():
         train_config = yaml.safe_load(f)
     model_name_or_path = train_config["model_name_or_path"]
 
-    PRE_MODEL_DIR = Path(PRE_MODEL_DIR) / "model"
+    PRE_MODEL_DIR = Path(PRE_MODEL_DIR) / "cherry_llm/train/model"
     run_command(    
         "conda run -n bench llamafactory-cli export "
         f"--model_name_or_path {model_name_or_path} "
         f"--adapter_name_or_path {PRE_MODEL_DIR} "
         f"--export_dir {MERGE_MODEL_DIR} "
-        f"--template {args.template} ",
-        cwd=PROJECT_ROOT
+        # f"--template {args.template} ",
+        , cwd=PROJECT_ROOT
     )
 
     current_cache_dir = constants.HF_HUB_CACHE
@@ -197,13 +197,6 @@ def main():
                 if os.path.isdir(os.path.join(snapshots_path, d))]
         if subdirs:
             real_model_path = max(subdirs, key=os.path.getmtime)
-    # print(real_model_path)
-    # for file in tokenizer_files:
-    #     src = os.path.join(real_model_path, file)
-    #     dst = os.path.join(MERGE_MODEL_DIR)
-    #     os.makedirs(dst, exist_ok=True)
-    #     if os.path.exists(src):
-    #         shutil.copy2(src, dst)
 
     # Stage 5: Final Cherry Analysis
     eval_model = MERGE_MODEL_DIR if os.path.exists(MERGE_MODEL_DIR) else args.model_path

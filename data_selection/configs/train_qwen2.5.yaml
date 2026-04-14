@@ -1,6 +1,6 @@
-dataset: exp_abc123_data
-dataset_dir: output/experiments/exp_Qwen-Qwen2.5-0.5B_20260413_050641/train/dataset
-output_dir: output/experiments/exp_Qwen-Qwen2.5-0.5B_20260413_050641/train/model
+dataset: processed_cherry_llm_20260414_075222_final_filtered_file,processed_openhermes2_5_alpaca
+dataset_dir: output/experiments/exp_Qwen-Qwen2.5-0.5B_20260414_081732/train/dataset
+output_dir: output/experiments/exp_Qwen-Qwen2.5-0.5B_20260414_081732/train/model
 model_name_or_path: Qwen/Qwen2.5-0.5B
 trust_remote_code: true
 stage: sft

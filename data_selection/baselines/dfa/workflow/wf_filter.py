@@ -7,8 +7,7 @@ import traceback
 import numpy as np
 from langchain.tools import tool
 from pydantic import BaseModel, Field
-# pip install langchain==0.3.27 langchain-community==0.3.29 langchain-core==0.3.76 langchain-openai==0.3.33 langchain-text-splitters==0.3.11
-# 
+
 from dataflow_agent.state import DFState, MainState
 from dataflow_agent.workflow.registry import register
 from dataflow_agent.graphbuilder.graph_builder import GenericGraphBuilder

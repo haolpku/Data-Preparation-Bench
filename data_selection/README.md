@@ -50,7 +50,7 @@ conda create -n dclm python==3.11 -y
 conda activate dclm
 
 # 安装依赖
-git submodule add git@github.com:mlfoundations/DCLM.git third_party/DCLM
+git submodule add --depth 1 git@github.com:mlfoundations/DCLM.git third_party/DCLM
 cd third_party/DCLM
 git apply ../../assets/patches/dclm.patch
 pip install -r requirements.txt

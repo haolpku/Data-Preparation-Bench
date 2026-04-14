@@ -75,9 +75,10 @@ class ResearchPlatform:
             for key, value in self.filter_cfg["args"].items():
                 self.filter_cfg[key] = value
         
-        self.filter_id = self._generate_filter_id()
-        self.filter_run_dir = (Path(self.args.output_root) / "data" / self.filter_id).absolute()
-        self.filter_run_dir.mkdir(parents=True, exist_ok=True)
+        if "filter" in self.args.stage:
+            self.filter_id = self._generate_filter_id()
+            self.filter_run_dir = (Path(self.args.output_root) / "data" / self.filter_id).absolute()
+            self.filter_run_dir.mkdir(parents=True, exist_ok=True)
 
         self.train_eval_id = self._generate_train_eval_id()
         self.train_and_eval_run_dir = (Path(self.args.output_root) / "experiments" / self.train_eval_id).absolute()
@@ -85,16 +86,21 @@ class ResearchPlatform:
         self.env = self._prepare_env()
 
     def _generate_train_eval_id(self) :
-        model_name = self.train_cfg.get(["model_name_or_path"], "")
+        model_name = self.train_cfg.get("model_name_or_path", "")
         model_name = f"{model_name.replace('/', '-')}"
+        
         if "train" in self.args.stage:
-            exp_id = f"exp_{model_name}_{self.timestamp}"
+            if "filter" in self.args.stage:
+                method = self.filter_cfg['method']
+                exp_id = f"exp_{method}_{model_name}_{self.timestamp}"
+            else:
+                exp_id = f"exp_{model_name}_{self.timestamp}"
         else:
             exp_id = f"exp_{self.timestamp}"
         return exp_id
 
     def _generate_filter_id(self) -> str:
-        data = Path(self.train_files).parent.stem
+        data = Path(self.train_files[0]).parent.stem
         method = self.filter_cfg['method']
         return f"{data}_{method}_{self.timestamp}"
 
@@ -126,8 +132,9 @@ class ResearchPlatform:
                 new_prefix = f"{prefix}.{key}" if prefix else key
                 self.add_args(args_list, new_prefix, value)
         elif isinstance(data, list):
-            value_str = " ".join(str(item) for item in data)
-            args_list.append(f"--{prefix} {shlex.quote(value_str)}")
+            args_list.append(f"--{prefix}") 
+            for item in data:
+                args_list.append(shlex.quote(str(item)))
         else:
             args_list.append(f"--{prefix} {shlex.quote(str(data))}")
 
@@ -136,7 +143,8 @@ class ResearchPlatform:
         for key, value in self.filter_cfg["args"].items():
             self.add_args(args_list, key, value)
         self.add_args(args_list, "output_root", self.filter_run_dir)
-        self.add_args(args_list, "train_files", self.train_files)
+        train_file = str(Path(self.train_files[0]).absolute())
+        self.add_args(args_list, "train_file", train_file)
         cmd = (
             f"python start.py "
             + " ".join(args_list)
@@ -176,10 +184,6 @@ class ResearchPlatform:
         if "eval" in self.args.stage:
             cmd += f" --eval_config_path {self.args.eval_config_path}"
 
-        cmd += (
-            f" --train_config_path {self.args.train_config_path}"
-            f" --eval_config_path {self.args.eval_config_path}"
-        )
         return cmd
 
     def _run_train_and_eval(self):
@@ -205,9 +209,8 @@ class ResearchPlatform:
             filtered_file = self.train_files
         
         cmd = self.build_train_command(
-            train_files=str(filtered_file),
+            train_files=filtered_file,
             exp_id=str(self.train_eval_id),
-            output_root=str(self.args.output_root)
         )
         return TaskRunner.run_cmd(cmd, cwd, self.env, log_p)
 

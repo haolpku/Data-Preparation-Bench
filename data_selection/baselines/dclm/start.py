@@ -12,8 +12,9 @@ from datetime import datetime
 
 DCLM_ROOT = Path(__file__).resolve().parents[2] / "third_party" / "DCLM"
 BASE_DIR = Path(__file__).resolve().parent.name
-# sys.path.insert(0, str(DCLM_ROOT))
-
+sys.path.insert(0, str(DCLM_ROOT))
+import pprint
+pprint.pprint(sys.path)
 def run_command(command, cwd=None, env=None):
     print(f"Execute Command: {command}")
     import shlex
@@ -113,9 +114,9 @@ def preprocess_data(input_file):
 def ensure_ray():
     try:
         subprocess.run("ray stop", shell=True, check=True)
-        subprocess.run("ray start --head --port=6379 --dashboard-port=8265", shell=True, check=True)
+        subprocess.run("ray start --head --port=6379 --dashboard-port=8265", shell=True, check=True, cwd=DCLM_ROOT)
     except:
-        subprocess.run("ray start --head --port=6379 --dashboard-port=8265", shell=True, check=True)
+        subprocess.run("ray start --head --port=6379 --dashboard-port=8265", shell=True, check=True, cwd=DCLM_ROOT)
 
 def merge_jsonl_files(input_paths, output_path):
     with open(output_path, 'w', encoding='utf-8') as f_out:
@@ -129,7 +130,7 @@ def merge_jsonl_files(input_paths, output_path):
                     if line.strip():
                         f_out.write(line.strip() + "\n")
 
-def ray_processing(args, shard_list_file, converted_input_file, ray_use_working_dir=False):
+def ray_processing(args, shard_list_file, converted_input_file):
     source_ref_paths = register_source(
         input_files=[converted_input_file], 
         source_ref_dir=shard_list_file.parent,
@@ -152,9 +153,6 @@ def ray_processing(args, shard_list_file, converted_input_file, ray_use_working_
         f"--shard_list_file {shard_list_file} "
         f"--overwrite "
     )
-    if ray_use_working_dir:
-        ray_cmd += f"--ray_use_working_dir "
-
     run_command(ray_cmd, cwd=DCLM_ROOT)
 
     config_name = os.path.basename(args.config).split(".")[0]
@@ -242,17 +240,17 @@ def main():
     update_yaml_source(args.config, args.name)
     ensure_ray()
 
-    processed_file = ray_processing(args, shard_list_file, converted_input_file, ray_use_working_dir=True)
+    processed_file = ray_processing(args, shard_list_file, converted_input_file)
 
     dedup_input_dir = processed_file.parent.absolute()
     dedup_output_dir = (Path(args.output_root) / "dedup").absolute()
     dedup(str(dedup_input_dir), str(dedup_output_dir))
     dedup_processed_file = dedup_output_dir / processed_file.name
-
-    args.config = str(DCLM_ROOT / "baselines" / "baselines_configs" / "fasttext_filter.yaml")
-    update_yaml_source(args.config, args.name)
-    shard_list_file = create_share_file(dedup_output_dir, dedup_processed_file)
-    processed_file = ray_processing(args, shard_list_file, dedup_processed_file, ray_use_working_dir=False)
+    if dedup_processed_file.exists():
+        args.config = str(DCLM_ROOT / "baselines" / "baselines_configs" / "fasttext_filter.yaml")
+        update_yaml_source(args.config, args.name)
+        shard_list_file = create_share_file(dedup_output_dir, dedup_processed_file)
+        processed_file = ray_processing(args, shard_list_file, dedup_processed_file)
 
     run_command("ray stop")
     filtered_file = Path(args.output_root) / args.filtered_file

@@ -14,25 +14,49 @@ def save_as_jsonl(data, file_path):
         for entry in data:
             f.write(json.dumps(entry, ensure_ascii=False) + '\n')
 
-def split_dataset(file_path, num_chunks):
-    """智能切分数据集 (支持 jsonl/csv/json)"""
+def split_dataset(file_path, num_chunks, min_lines_per_chunk=100):
+    """
+    智能切分数据集
+    :param min_lines_per_chunk: 每个分块至少要包含的行数，防止分块过细
+    """
     p = Path(file_path)
     if not p.exists(): return []
     
     with open(file_path, 'r', encoding='utf-8') as f:
         lines = f.readlines()
     
-    chunk_size = math.ceil(len(lines) / num_chunks)
+    total_lines = len(lines)
+    
+    # --- 核心改进逻辑 ---
+    # 1. 如果总行数还没达到一个分块的最小要求，直接返回原文件路径，不分割
+    if total_lines <= min_lines_per_chunk:
+        print(f"数据集较小 ({total_lines} 行)，跳过分割。")
+        return [str(file_path)]
+    
+    # 2. 重新计算实际需要的分块数量
+    # 比如你想分 32 个块，但总共只有 320 行，按阈值 100 行算，实际只需分 3 块
+    actual_chunks = min(num_chunks, math.ceil(total_lines / min_lines_per_chunk))
+    
+    # 如果算出来只需 1 个块，也直接返回原路径
+    if actual_chunks <= 1:
+        return [str(file_path)]
+    
+    # --- 开始切分 ---
+    chunk_size = math.ceil(total_lines / actual_chunks)
     chunk_paths = []
-    for i in range(num_chunks):
+    
+    for i in range(actual_chunks):
         chunk_lines = lines[i*chunk_size : (i+1)*chunk_size]
         if not chunk_lines: continue
+        
         c_path = p.parent / f"{p.stem}_chunk_{i}{p.suffix}"
         with open(c_path, 'w', encoding='utf-8') as f:
             f.writelines(chunk_lines)
         chunk_paths.append(str(c_path))
+    
+    print(f"数据集已切分为 {len(chunk_paths)} 个分块 (每块约 {chunk_size} 行)。")
     return chunk_paths
-
+    
 def merge_jsonl_results(cache_dir, output_file_pattern, dataset_name):
     cache_path = Path(cache_dir)
     if not cache_path.exists():
@@ -50,7 +74,7 @@ def merge_jsonl_results(cache_dir, output_file_pattern, dataset_name):
         print(f"Merging Step {step} results to {final_out_path}...")
         with open(final_out_path, 'w', encoding='utf-8') as outfile:
             # 只合并属于当前 step 的分片文件
-            chunk_files = cache_path.glob(f"*_step{step}*.jsonl")
+            chunk_files = cache_path.glob(f"*_[0-9]*_step{step}*.jsonl")
             for f in sorted(chunk_files):
                 # 排除掉已经是合并后的文件（如果有的话）
                 if f.name == final_out_path.name:

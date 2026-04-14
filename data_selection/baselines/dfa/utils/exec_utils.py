@@ -19,45 +19,12 @@ from dataflow.utils.registry import OPERATOR_REGISTRY
 
 from utils.data_utils import save_as_jsonl
 
-def run_python_file2(file_path, timeout=300):
-    import os, subprocess
-    
-    env = os.environ.copy()
-    env["PYTHONUNBUFFERED"] = "1"
-    env["HF_ENDPOINT"] = "https://hf-mirror.com"
-    
-    # 使用列表形式避免 shell 注入和路径转义问题
-    cmd = [os.sys.executable, "-u", file_path]
-    
-    try:
-        proc = subprocess.Popen(
-            cmd,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-            env=env,
-            encoding='utf-8'
-        )
-        
-        # communicate 会自动等待子进程结束并收集所有输出
-        # 它比手动开线程管理 join 稳定得多
-        stdout_data, stderr_data = proc.communicate(timeout=timeout)
-        return proc.returncode, stdout_data, stderr_data
-
-    except subprocess.TimeoutExpired:
-        proc.kill()
-        # 即使超时，也要尝试读取已经产生的输出
-        stdout_data, stderr_data = proc.communicate()
-        return -1, stdout_data, stderr_data + f"\n[Error] Timeout after {timeout}s"
-    except Exception as e:
-        return -2, "", f"[Internal Error] {str(e)}"
-
 def run_python_file(file_path, timeout=300):
     env = os.environ.copy()
     env["PYTHONUNBUFFERED"] = "1"  
     env["HF_ENDPOINT"] = "https://hf-mirror.com"
     
-    cmd = [sys.executable, "-u", "-i", str(file_path)]
+    cmd = [sys.executable, "-u", str(file_path)]
     
     all_output = []
 

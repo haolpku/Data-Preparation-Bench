@@ -1,3 +1,12 @@
 [submodule "data_selection/third_party/LlamaFactory"]
 	path = data_selection/third_party/LlamaFactory
 	url = git@github.com:hiyouga/LlamaFactory.git
+[submodule "data_selection/third_party/DataFlow-Agent"]
+	path = data_selection/third_party/DataFlow-Agent
+	url = git@github.com:OpenDCAI/DataFlow-Agent.git
+[submodule "data_selection/third_party/DCLM"]
+	path = data_selection/third_party/DCLM
+	url = git@github.com:mlfoundations/DCLM.git
+[submodule "data_selection/third_party/Cherry_LLM"]
+	path = data_selection/third_party/Cherry_LLM
+	url = git@github.com:tianyi-lab/Cherry_LLM.git
