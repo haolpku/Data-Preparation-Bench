@@ -97,10 +97,48 @@ huggingface-cli download --repo-type dataset --resume-download teknium/OpenHerme
 
 ---
 
+### 3.3 常用数据集准备示例 (Common Datasets Setup)
+项目已验证并支持以下 5 个主流数据集的快速构建。请确保已激活 bench 环境。
+
+#### LMSYS-Chat-1M
+这类数据通常包含多轮对话，处理时会自动提取并转换为标准 Alpaca 格式。
+
+```Bash
+# 下载数据 (以 LMSYS-Chat-1M 为例)
+huggingface-cli download --repo-type dataset lmsys/lmsys-chat-1m --local-dir dataset/lmsys-chat-1m
+
+# 预处理整个目录
+python preprocess_data.py --train_file dataset/lmsys-chat-1m/
+```
+#### WildChat
+```Bash
+# 下载数据 (以 LMSYS-Chat-1M 为例)
+huggingface-cli download --repo-type dataset allenai/WildChat --local-dir dataset/WildChat
+
+# 预处理整个目录
+python preprocess_data.py --train_file dataset/WildChat/data
+```
+#### OpenHermes 2.5
+```Bash
+huggingface-cli download --repo-type dataset teknium/OpenHermes-2.5 --local-dir dataset/OpenHermes-2.5
+
+# 处理指定 json 文件
+python preprocess_data.py --train_file dataset/OpenHermes-2.5/openhermes2_5.json
+```
+#### Databricks-Dolly-15K
+```Bash
+huggingface-cli download --repo-type dataset databricks/databricks-dolly-15k --local-dir dataset/dolly-15k
+
+python preprocess_data.py --train_file dataset/dolly-15k/databricks-dolly-15k.jsonl
+```
+#### WizardLM Evol-Instruct 70K
+```Bash
+huggingface-cli download --repo-type dataset WizardLMTeam/WizardLM_evol_instruct_70k --local-dir dataset/wizardlm-70k
+
+python preprocess_data.py --train_file dataset/wizardlm-70k/WizardLM_evol_instruct_70k.json
+```
+
 ## 4. 快速开始
-
-
-
 ### 4.1 方式 1：一键执行（全流程）
 适合单个数据集的自动化流水线，程序会自动处理环境切换。
 ```bash

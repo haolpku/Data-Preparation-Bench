@@ -108,6 +108,14 @@ class DataPreprocessor:
                 import pandas as pd
                 df = pd.read_csv(path, sep=None, engine='python', encoding='utf-8', on_bad_lines='skip')
                 return df.to_dict('records')
+            elif path.suffix == ".parquet":
+                try:
+                    import pandas as pd
+                except ImportError:
+                    print(f"❌ 缺少依赖：请运行 'pip install pandas pyarrow' 以处理 parquet 文件")
+                    return []
+                df = pd.read_parquet(path)
+                return df.to_dict('records')
         except Exception as e:
             print(f"⚠️ 读取失败 {path.name}: {str(e)[:40]}")
         return []
@@ -125,7 +133,7 @@ class DataPreprocessor:
     def process(input_path: Path):
         files = [input_path] if input_path.is_file() else []
         if input_path.is_dir():
-            for ext in ["*.json", "*.jsonl", "*.csv"]:
+            for ext in ["*.json", "*.jsonl", "*.csv", "*.parquet"]:
                 files.extend(input_path.rglob(ext))
 
         for f in files:
