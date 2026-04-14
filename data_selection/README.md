@@ -27,7 +27,7 @@ cd data_selection
 ```bash
 conda create -n dfa python==3.11 -y
 conda activate dfa
-git submodule add git@github.com:OpenDCAI/DataFlow-Agent.git third_party/DataFlow-Agent
+git submodule add https://github.com/OpenDCAI/DataFlow-Agent.git third_party/DataFlow-Agent
 cd third_party/DataFlow-Agent
 pip install -r requirements-data.txt
 pip install -e .
@@ -37,7 +37,7 @@ pip install -e .
 ```bash
 conda create -n dclm python==3.11 -y
 conda activate dclm
-git submodule add --depth 1 git@github.com:mlfoundations/DCLM.git third_party/DCLM
+git submodule add --depth 1 https://github.com/mlfoundations/DCLM.git third_party/DCLM
 cd third_party/DCLM
 git apply ../../assets/patches/dclm.patch
 pip install -r requirements.txt
@@ -55,7 +55,7 @@ pip install ray
 ```bash
 conda create -n cherry_llm python==3.11 -y 
 conda activate cherry_llm
-git submodule add git@github.com:tianyi-lab/Cherry_LLM.git third_party/Cherry_LLM
+git submodule add https://github.com/tianyi-lab/Cherry_LLM.git third_party/Cherry_LLM
 cd third_party/Cherry_LLM
 git apply ../../assets/patches/cherry_llm.patch
 pip install -r requirements.txt
@@ -65,7 +65,7 @@ pip install -r requirements.txt
 ```bash
 conda create -n bench python=3.11 -y
 conda activate bench
-git submodule add --depth 1 git@github.com:hiyouga/LlamaFactory.git third_party/LlamaFactory
+git submodule add --depth 1 https://github.com/hiyouga/LlamaFactory.git third_party/LlamaFactory
 cd third_party/LlamaFactory && pip install -e .
 pip install lm-eval
 ```
