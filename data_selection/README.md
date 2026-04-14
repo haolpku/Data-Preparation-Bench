@@ -156,7 +156,7 @@ python pipeline.py \
 适合多阶段调试或多数据集筛选场景。
 
 1.  **数据筛选：**
-只接受过滤单个数据集文件
+只接受过滤单个数据集文件。该模块支持自动化调用不同的 Baseline 环境。系统会根据 --filter_config 中的 method 字段，自动在对应的 Conda 环境中执行 third_party/{method}/start.py。
     ```bash
     conda activate dfa
     python pipeline.py --train_files [FILE_PATH] --filter_config configs/dfa.yaml --stage filter
