@@ -61,7 +61,11 @@ class DatasetConverter:
 
     @staticmethod
     def _parse_sharegpt(item: Dict[str, Any]) -> List[AlpacaExample]:
-        convs = item.get("conversations") or item.get("conversation") or item.get("messages") or item.get("chat") or []
+        # convs = item.get("conversations") or item.get("conversation") or item.get("messages") or item.get("chat") or []
+        convs = (item.get("conversations") if item.get("conversations") is not None else
+         item.get("conversation") if item.get("conversation") is not None else
+         item.get("messages") if item.get("messages") is not None else
+         item.get("chat") if item.get("chat") is not None else [])
         system = DatasetConverter.clean_text(item.get("system", ""))
 
         if isinstance(convs, str):
@@ -69,6 +73,8 @@ class DatasetConverter:
                 convs = ast.literal_eval(re.sub(r'}\s*{', '},{', convs))
             except:
                 return []
+        if hasattr(convs, 'tolist'):
+            convs = convs.tolist()
         if not isinstance(convs, list):
             return []
 

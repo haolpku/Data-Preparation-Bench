@@ -104,7 +104,7 @@ huggingface-cli download --repo-type dataset --resume-download teknium/OpenHerme
 这类数据通常包含多轮对话，处理时会自动提取并转换为标准 Alpaca 格式。
 
 ```Bash
-# 下载数据 (以 LMSYS-Chat-1M 为例)
+# 下载数据
 huggingface-cli download --repo-type dataset lmsys/lmsys-chat-1m --local-dir dataset/lmsys-chat-1m
 
 # 预处理整个目录
@@ -112,7 +112,7 @@ python preprocess_data.py --train_file dataset/lmsys-chat-1m/
 ```
 #### WildChat
 ```Bash
-# 下载数据 (以 LMSYS-Chat-1M 为例)
+# 下载数据
 huggingface-cli download --repo-type dataset allenai/WildChat --local-dir dataset/WildChat
 
 # 预处理整个目录
@@ -135,7 +135,7 @@ python preprocess_data.py --train_file dataset/dolly-15k/databricks-dolly-15k.js
 ```Bash
 huggingface-cli download --repo-type dataset WizardLMTeam/WizardLM_evol_instruct_70k --local-dir dataset/wizardlm-70k
 
-python preprocess_data.py --train_file dataset/wizardlm-70k/WizardLM_evol_instruct_70k.json
+python preprocess_data.py --train_file dataset/wizardlm-70k/alpaca_evol_instruct_70k.json
 ```
 
 ## 4. 快速开始
