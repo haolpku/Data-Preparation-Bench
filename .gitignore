@@ -10,4 +10,3 @@ wheels/
 .venv
 
 uv.lock
-dataset
