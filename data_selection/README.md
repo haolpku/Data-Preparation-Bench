@@ -1,5 +1,5 @@
 
-# Data-Preparation-Bench
+# Data-Selection
 
 专注于大模型数据筛选、训练与评估的完整流水线。提供标准化数据处理、多种筛选 Baseline、自动化训练评估流程，助力快速复现实验并对比不同数据筛选策略的效果。
 
