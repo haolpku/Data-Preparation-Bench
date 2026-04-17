@@ -7,7 +7,7 @@ import torch
 import runpy
 import traceback
 from dataflow_agent.state import MainState, MainRequest
-from workflow import register_all_workflows
+
 from dataflow_agent.workflow import get_workflow
 from dataflow_agent.logger import get_logger
 from dataflow_agent.utils import get_project_root
@@ -16,18 +16,13 @@ from utils import (
     create_simple_parallel_script, merge_jsonl_results,
 )
 
-# Initialize project root and logger
 PROJDIR = get_project_root()
 log = get_logger(__name__)
-
-# Register all defined workflows
-register_all_workflows()
 
 async def run_workflow(name: str, state):
     factory = get_workflow(name)
     graph_builder = factory(state)
 
-    # graph = graph_builder.compile()
     graph = graph_builder.build()       
 
     return await graph.ainvoke(state)
@@ -36,7 +31,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description="LLM Data Filtering Workflow CLI Tool")
     parser.add_argument("--train_file", type=str, required=True,
                         help="Path to the full dataset to be filtered (.json or .jsonl)")
-    parser.add_argument("--test_dataset_path", type=str, 
+    parser.add_argument("--test_train_file", type=str, required=True,
                         help="Path to a small-scale sample dataset for Agent debugging")
     parser.add_argument("--dataset_name", type=str, default="my_filter_task",
                         help="Task name, determines the output directory name")
@@ -69,11 +64,14 @@ async def run_filter_pipeline(args) -> str:
         api_key=args.api_key,
         target=args.target,
     )
-    
+    if not os.path.exists(args.test_train_file) and not os.path.exists(args.train_file):
+        raise FileNotFoundError(f"❌ Required sample and complete files not found: {rgs.test_train_file} and {args.train_file}. "
+                                f"Please ensure the sampling step completed successfully.")
     # Inject task configurations
     req.dataset_name = args.dataset_name
     req.real_json_file = args.train_file
-    req.json_file = args.test_dataset_path  # Small dataset for unit testing
+    req.json_file = args.test_train_file  # Small dataset for unit testing
+    
     req.writer_target = args.writer_target
     req.need_debug = not args.no_debug
     req.max_debug_rounds = args.max_rounds
@@ -81,8 +79,7 @@ async def run_filter_pipeline(args) -> str:
     req.pipeline_file_path = args.pipeline_file_path
 
     state = MainState(messages=[], request=req)
-    # state.real_json_file = "/home/hxy/dcai/Data-Preparation-Bench/data_selection/dataset/golden/databricks-dolly-15k/databricks-dolly-15k_extracted.jsonl"
-    # return state
+
     log.info("🤖 Starting Agent workflow for code generation and validation...")
     final_state: MainState = await run_workflow("filter", state)
     return final_state
@@ -92,7 +89,6 @@ def parallel_exec_node(pipeline_file_path, state):
     """Stage 2: Perform multi-GPU parallel filtering using the generated code."""
     dataset_path = state.get("request", {}).real_json_file
 
-    # Read the source code written by the Agent
     try:
         with open(pipeline_file_path, 'r', encoding='utf-8') as f:
             filter_code = f.read()
@@ -109,14 +105,12 @@ def parallel_exec_node(pipeline_file_path, state):
     # Construct parallel tasks
     tasks = []
     for i, chunk_file in enumerate(chunk_files):
-        # i = chunk_file.split('chunk_')[-1].split('.jsonl')[0]
         gpu_id = int(i) % num_gpus
         tasks.append((chunk_file, gpu_id, filter_code, i, dataset_path))
     
     # Create the parallel driver script
     script_path = create_simple_parallel_script(tasks, num_gpus)
     
-    # Execute parallel tasks
     log.info(f"🚀 Launching parallel execution script: {script_path}")
     try:
         runpy.run_path(script_path, run_name="__main__")

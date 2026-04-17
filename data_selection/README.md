@@ -39,7 +39,6 @@ conda create -n dclm python==3.11 -y
 conda activate dclm
 git submodule add --depth 1 https://github.com/mlfoundations/DCLM.git third_party/DCLM
 cd third_party/DCLM
-git apply ../../assets/patches/dclm.patch
 pip install -r requirements.txt
 
 # 系统依赖 (Ubuntu)
@@ -57,8 +56,8 @@ conda create -n cherry_llm python==3.11 -y
 conda activate cherry_llm
 git submodule add https://github.com/tianyi-lab/Cherry_LLM.git third_party/Cherry_LLM
 cd third_party/Cherry_LLM
-git apply ../../assets/patches/cherry_llm.patch
 pip install -r requirements.txt
+cd ../LlamaFactory && pip install -e .
 ```
 
 ### 2.3 训练与评估环境
@@ -113,27 +112,27 @@ python preprocess_data.py --train_file dataset/lmsys-chat-1m/
 #### WildChat
 ```Bash
 # 下载数据
-huggingface-cli download --repo-type dataset allenai/WildChat --local-dir dataset/WildChat
+hf download --repo-type dataset allenai/WildChat --local-dir dataset/WildChat
 
 # 预处理整个目录
 python preprocess_data.py --train_file dataset/WildChat/data
 ```
 #### OpenHermes 2.5
 ```Bash
-huggingface-cli download --repo-type dataset teknium/OpenHermes-2.5 --local-dir dataset/OpenHermes-2.5
+hf download --repo-type dataset teknium/OpenHermes-2.5 --local-dir dataset/OpenHermes-2.5
 
 # 处理指定 json 文件
 python preprocess_data.py --train_file dataset/OpenHermes-2.5/openhermes2_5.json
 ```
 #### Databricks-Dolly-15K
 ```Bash
-huggingface-cli download --repo-type dataset databricks/databricks-dolly-15k --local-dir dataset/dolly-15k
+hf download --repo-type dataset databricks/databricks-dolly-15k --local-dir dataset/dolly-15k
 
 python preprocess_data.py --train_file dataset/dolly-15k/databricks-dolly-15k.jsonl
 ```
 #### WizardLM Evol-Instruct 70K
 ```Bash
-huggingface-cli download --repo-type dataset WizardLMTeam/WizardLM_evol_instruct_70k --local-dir dataset/wizardlm-70k
+hf download --repo-type dataset WizardLMTeam/WizardLM_evol_instruct_70k --local-dir dataset/wizardlm-70k
 
 python preprocess_data.py --train_file dataset/wizardlm-70k/alpaca_evol_instruct_70k.json
 ```
@@ -144,9 +143,8 @@ python preprocess_data.py --train_file dataset/wizardlm-70k/alpaca_evol_instruct
 ```bash
 conda activate dfa  # 激活任一筛选环境
 python pipeline.py \
-    --train_files dataset/databricks/databricks-dolly-15k/processed/databricks-dolly-15k_alpaca.jsonl \
-    --filter_config configs/dfa.yaml \
-    --train_config configs/train_qwen2.5.yaml \
+    --filter_config configs/baselinesdfa.yaml \
+    --train_config configs/model/qwen2.5_lora_sft.yaml \
     --eval_config configs/eval.yaml \
     --stage filter,train,eval \
     --env_name bench
@@ -156,16 +154,16 @@ python pipeline.py \
 适合多阶段调试或多数据集筛选场景。
 
 1.  **数据筛选：**
-只接受过滤单个数据集文件。该模块支持自动化调用不同的 Baseline 环境。系统会根据 --filter_config 中的 method 字段，自动在对应的 Conda 环境中执行 third_party/{method}/start.py。
+只接受过滤单个数据集文件。该模块支持自动化调用不同的 Baseline 环境。系统会根据 --filter_config 中的 method 字段，自动在对应的 Conda 环境中执行 third_party/{method}/start.py。配置文件中的 args 字段会自动转换为命令行参数传递给子进程。不同 Baseline 的特有参数（如 API Key、过滤阈值等）均可通过 YAML 灵活配置，无需修改主程序代码。
     ```bash
     conda activate dfa
-    python pipeline.py --train_files [FILE_PATH] --filter_config configs/dfa.yaml --stage filter
+    python pipeline.py --filter_config configs/baselines/dfa.yaml --stage filter
     ```
 2.  **模型训练：**
 可接受多个数据集文件用于训练
     ```bash
     conda activate bench
-    python train_eval.py --train_files [FILTERED_FILE1] [FILTERED_FILE2] --train_config configs/train_qwen2.5.yaml 
+    python train_eval.py --train_files [FILTERED_FILE1] [FILTERED_FILE2] --train_config configs/model/qwen2.5_lora_sft.yaml 
     ```
 3.  **模型评估：**
     ```bash
@@ -173,9 +171,8 @@ python pipeline.py \
     ```
 3.  **模型训练和评估评估：**
     ```bash
-    python train_eval.py  --train_files [FILTERED_FILE] [FILTERED_FILE2] --train_config configs/train_qwen2.5.yaml  --eval_config configs/eval.yaml
+    python train_eval.py  --train_files [FILTERED_FILE] [FILTERED_FILE2] --train_config configs/model/qwen2.5_lora_sft.yaml  --eval_config configs/eval.yaml
     ```
-
 ---
 
 ## 5. 实验输出结构

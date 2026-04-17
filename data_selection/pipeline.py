@@ -22,9 +22,9 @@ logger = logging.getLogger(__name__)
 
 class TaskRunner:
     @staticmethod
-    def run_cmd(command: str, cwd: Path, env: Dict, stage_log_path: Path):
+    def run_cmd(command: str, cwd: Path, stage_log_path: Path):
         logger.info(f"Running command in {cwd}: {command}")
-        env = env.copy() if env else {}
+        env = os.environ.copy()
         env["HF_ALLOW_CODE_EVAL"] = "1" 
 
         if isinstance(command, str):
@@ -83,7 +83,6 @@ class ResearchPlatform:
         self.train_eval_id = self._generate_train_eval_id()
         self.train_and_eval_run_dir = (Path(self.args.output_root) / "experiments" / self.train_eval_id).absolute()
         self.train_and_eval_run_dir.mkdir(parents=True, exist_ok=True)
-        self.env = self._prepare_env()
 
     def _generate_train_eval_id(self) :
         model_name = self.train_cfg.get("model_name_or_path", "")
@@ -100,21 +99,15 @@ class ResearchPlatform:
         return exp_id
 
     def _generate_filter_id(self) -> str:
-        data = Path(self.train_files[0]).parent.stem
+        dataset = Path(self.filter_cfg['train_file']).stem
         method = self.filter_cfg['method']
-        return f"{data}_{method}_{self.timestamp}"
+        return f"{dataset}_{method}_{self.timestamp}"
 
     def _load_yaml(self, path):
         if not path or not os.path.exists(path):
             return {}
         with open(path, "r", encoding="utf-8") as f:
             return yaml.safe_load(f) or {}
-
-    def _prepare_env(self):
-        env = os.environ.copy()
-        env["PYTHONPATH"] = str(PROJECT_ROOT) 
-        env["DEBUG_MODE"] = "1"
-        return env
 
     def start(self):
         # 1. Filtering
@@ -141,10 +134,10 @@ class ResearchPlatform:
     def build_filter_command(self):
         args_list = []
         for key, value in self.filter_cfg["args"].items():
+            if key == "train_file": value = str(Path(value).absolute())
             self.add_args(args_list, key, value)
         self.add_args(args_list, "output_root", self.filter_run_dir)
-        train_file = str(Path(self.train_files[0]).absolute())
-        self.add_args(args_list, "train_file", train_file)
+
         cmd = (
             f"python start.py "
             + " ".join(args_list)
@@ -156,7 +149,7 @@ class ResearchPlatform:
         log_p = self.filter_run_dir / "filter.log"
         
         cmd = self.build_filter_command()
-        return TaskRunner.run_cmd(cmd, cwd, self.env, log_p)
+        return TaskRunner.run_cmd(cmd, cwd, log_p)
 
     def get_conda_python(self, env_name: str):
         conda_prefix = os.environ.get("CONDA_PREFIX")
@@ -194,7 +187,7 @@ class ResearchPlatform:
             filtered_file = self.filter_run_dir / f_cfg['filtered_file'] 
 
             if  f_cfg["method"] == "dfa":
-                # 如果是dfa方法，需要选择过滤的第x步后数据集
+                # If it is the DFA method, the dataset after the nth step of filtering needs to be selected.
                 output_file = self.filter_run_dir / f_cfg['filtered_file']
                 if os.path.exists(output_file):
                     with open(output_file, 'r', encoding='utf-8') as f:
@@ -212,7 +205,7 @@ class ResearchPlatform:
             train_files=filtered_file,
             exp_id=str(self.train_eval_id),
         )
-        return TaskRunner.run_cmd(cmd, cwd, self.env, log_p)
+        return TaskRunner.run_cmd(cmd, cwd, log_p)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

@@ -1,0 +1,36 @@
+{
+    // 使用 IntelliSense 了解相关属性。 
+    // 悬停以查看现有属性的描述。
+    // 欲了解更多信息，请访问: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python: 当前文件",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/data_selection/pipeline.py",
+            "cwd": "${workspaceFolder}/data_selection",
+            "args": [
+                "--filter_config", "configs/baselines/cherry_llm.yaml",
+                "--train_config", "configs/model/qwen2.5_lora_sft.yaml",
+                "--eval_config", "configs/eval.yaml",
+                "--stage", "filter,train,eval",
+                "--env_name", "bench",
+            ],
+            "console": "integratedTerminal",
+            "justMyCode": true
+        },
+        {
+            "name": "preprocess",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/data_selection/preprocess_data.py",
+            "cwd": "${workspaceFolder}/data_selection",
+            "args": [
+                "--train_file", "dataset/OpenHermes-2.5/openhermes2_5.json",
+            ],
+            "console": "integratedTerminal",
+            "justMyCode": true
+        }
+    ]
+}

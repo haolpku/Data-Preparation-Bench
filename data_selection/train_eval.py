@@ -8,9 +8,6 @@ import torch
 from pathlib import Path
 from datetime import datetime
 
-from lm_eval import evaluator
-from lm_eval.models.huggingface import HFLM
-
 import json
 import shutil
 from pathlib import Path
@@ -217,6 +214,8 @@ def convert_lm_eval_results(lm_eval_results):
     return custom_results
 
 def run_evaluation(eval_exp_dir, eval_config_path, model_name, model_save_dir):
+    from lm_eval import evaluator
+    from lm_eval.models.huggingface import HFLM
     with open(eval_config_path, "r", encoding="utf-8") as f:
         eval_config = yaml.safe_load(f)
     if not model_name:

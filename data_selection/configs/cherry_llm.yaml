@@ -1,9 +1,0 @@
-output_root: "./output"
-
-method: "cherry_llm"
-args:
-  train_file: "dataset/messy/lmsys-chat-1m/lmsys-chat-1m_extracted_5.jsonl"
-  model_path: "Qwen/Qwen2.5-7B-Instruct"
-  filtered_file: "final_filtered_file.jsonl"
-  template: "qwen3_nothink"
-  train_config_path: "configs/train_qwen2.5.yaml"

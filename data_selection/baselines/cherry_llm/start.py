@@ -11,6 +11,8 @@ from huggingface_hub import constants, try_to_load_from_cache
 
 CHERRY_LLM_ROOT = Path(__file__).resolve().parents[2] / "third_party" / "Cherry_LLM"
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
+BASE_DIR = Path(__file__).resolve().parent
+
 def run_command(cmd, env_update=None, cwd=None):
     current_env = os.environ.copy()
     if env_update:
@@ -21,62 +23,8 @@ def run_command(cmd, env_update=None, cwd=None):
         cmd_list = shlex.split(cmd)
     else:
         cmd_list = cmd
-    try:
-        subprocess.run(cmd_list, shell=False, check=True, env=current_env, cwd=cwd)
-    except subprocess.CalledProcessError as e:
-        print(f"❌ 执行失败: {e}")
-        sys.exit(1)
-
-def convert_sharegpt_to_alpaca(sharegpt_list):
-    alpaca_data = []
-    for entry in sharegpt_list:
-        convs = entry.get("conversations", [])
-        if not convs:
-            continue
-            
-        system = entry.get("system", "")
-        start_idx = 0
-        
-        if convs[0].get("from") == "system":
-            system = convs[0].get("value", "")
-            start_idx = 1 
-            
-        history = ""
-        
-        for i in range(start_idx, len(convs) - 1, 2):
-            if convs[i]["from"] not in ["human", "user"]:
-                continue
-            
-            user_msg = convs[i]["value"]
-            assistant_msg = convs[i+1]["value"]
-            
-            current_instruction = f"{system}\n{history}User: {user_msg}".strip()
-            alpaca_data.append({
-                "instruction": current_instruction,
-                "input": "",
-                "output": assistant_msg
-            })
-            
-            history += f"User: {user_msg}\nAssistant: {assistant_msg}\n"
-
-   
-    return alpaca_data
-
-def judge_and_convert(file_path):
-    with open(file_path, "r", encoding="utf-8") as f:
-        raw_data = json.load(f)
-
-    if isinstance(raw_data, list) and len(raw_data) > 0 and "conversations" in raw_data[0]:
-        print("💡 检测到 ShareGPT 格式（含多轮/System）")
-        output_path = Path(file_path).parent / f"{Path(file_path).stem}_alpaca.json"
-        if os.path.exists(output_path): return output_path
-        alpaca_data = convert_sharegpt_to_alpaca(raw_data)
-        with open(output_path, "w", encoding="utf-8") as f:
-            json.dump(alpaca_data, f, ensure_ascii=False, indent=4)
-        return output_path
-    else:
-        print("💡 检测到 Alpaca 格式")
-        return file_path
+    result = subprocess.run(cmd_list, shell=False, check=True, cwd=cwd, env=current_env)
+    return result
 
 def transfer_json(data_path):
     input_path = Path(data_path)
@@ -87,7 +35,7 @@ def transfer_json(data_path):
     
     all_alpaca_data = []
     if os.path.exists(output_path):
-        print(f"💡 已检测到转换后的 JSON 文件，直接使用: {output_path}")
+        print(f"💡 The converted JSON file has been detected. Use directly: {output_path}")
         return str(output_path)
     with open(input_path, 'r', encoding='utf-8') as f:
         if input_path.suffix == '.jsonl':
@@ -108,10 +56,9 @@ def parse_args():
     parser.add_argument("--output_dir", default="./cherry_results", help="结果输出目录")
     parser.add_argument("--filtered_file", required=True, help="结果输出目录")
     parser.add_argument("--sample_rate", default="0.1", help="最终筛选比例 (默认 0.1 即 10%)")
-    parser.add_argument("--prompt_type", default="alpaca", choices=["alpaca", "wiz"], help="Prompt 模板类型")
+    parser.add_argument("--prompt_type", default="alpaca", choices=["alpaca"], help="Prompt 模板类型")
     parser.add_argument("--output_root", default="", required=True)
     parser.add_argument("--train_config_path", default="", required=True)
-    parser.add_argument("--template", default="", required=True)
     return parser.parse_args()
 
 def main():
@@ -120,9 +67,6 @@ def main():
 
     timestamp = datetime.now().strftime("%Y%m%d")
     BASE_NAME = str(Path(args.train_file).parent.stem)
-
-    # output_dir = os.path.join(args.output_root, f"{BASE_NAME}_{timestamp}")
-    # os.makedirs(output_dir, exist_ok=True)
     
     output_dir = Path(args.output_root)
     PRE_PT = (output_dir / "pre.pt").absolute()
@@ -136,8 +80,9 @@ def main():
 
     # Stage 1: Pre-Analysis
     if not os.path.exists(PRE_PT):
+        exec_file = str(BASE_DIR / "data_analysis.py")
         ray_cmd = (
-            f"{os.path.basename(sys.executable)} cherry_seletion/data_analysis.py "
+            f"{os.path.basename(sys.executable)} {exec_file} "
             f"--data_path {data_path} "
             f"--save_path {PRE_PT} "
             f"--model_name_or_path {args.model_path} "
@@ -163,7 +108,7 @@ def main():
     # Stage 3: Training Pre-experienced Model
     if not os.path.exists(PRE_MODEL_DIR):
         run_command(
-            f"conda run -n bench python {train_entry} "
+            f"{os.path.basename(sys.executable)} {train_entry} "
             f"--train_config_path {args.train_config_path} "
             f"--train_files {PRE_JSON} "
             f"--output_root {PRE_MODEL_DIR} "
@@ -179,30 +124,19 @@ def main():
 
     PRE_MODEL_DIR = Path(PRE_MODEL_DIR) / "cherry_llm/train/model"
     run_command(    
-        "conda run -n bench llamafactory-cli export "
+        "llamafactory-cli export "
         f"--model_name_or_path {model_name_or_path} "
         f"--adapter_name_or_path {PRE_MODEL_DIR} "
         f"--export_dir {MERGE_MODEL_DIR} "
-        # f"--template {args.template} ",
         , cwd=PROJECT_ROOT
     )
-
-    current_cache_dir = constants.HF_HUB_CACHE
-    tokenizer_files = ["vocab.json", "tokenizer.json", "tokenizer_config.json"]
-    repo_folder = f"models--{args.model_path.replace('/', '--')}"
-    snapshots_path = os.path.join(current_cache_dir, repo_folder, "snapshots")
-    
-    if os.path.exists(snapshots_path):
-        subdirs = [os.path.join(snapshots_path, d) for d in os.listdir(snapshots_path) 
-                if os.path.isdir(os.path.join(snapshots_path, d))]
-        if subdirs:
-            real_model_path = max(subdirs, key=os.path.getmtime)
 
     # Stage 5: Final Cherry Analysis
     eval_model = MERGE_MODEL_DIR if os.path.exists(MERGE_MODEL_DIR) else args.model_path
     if not os.path.exists(CHERRY_PT):
+        exec_file = str(BASE_DIR / "data_analysis.py")
         ray_cmd = (
-            f"{os.path.basename(sys.executable)} cherry_seletion/data_analysis.py "
+            f"{os.path.basename(sys.executable)} {exec_file} "
             f"--data_path {data_path} "
             f"--save_path {CHERRY_PT} "
             f"--model_name_or_path {eval_model} "
@@ -224,7 +158,7 @@ def main():
     )
     run_command(ray_cmd, cwd=CHERRY_LLM_ROOT)
 
-    print(f"🍒 樱桃数据集已保存至: {os.path.abspath(FINAL_OUTPUT)}")
+    print(f"🍒 The cherry dataset has been saved to:: {os.path.abspath(FINAL_OUTPUT)}")
 
 if __name__ == "__main__":
     main()

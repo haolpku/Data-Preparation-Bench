@@ -9,4 +9,4 @@
 	url = git@github.com:OpenDCAI/DataFlow-Agent.git
 [submodule "data_selection/third_party/DCLM"]
 	path = data_selection/third_party/DCLM
-	url = git@github.com:mlfoundations/DCLM.git
+	url = https://github.com/mlfoundations/dclm.git

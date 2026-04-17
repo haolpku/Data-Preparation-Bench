@@ -1,0 +1,11 @@
+output_root: "./output"  # 结果输出根目录
+method: "cherry_llm"     # 对应的算法名称
+
+args:
+  # 数据路径
+  train_file: "dataset/dolly-15k/processed/databricks-dolly-15k_extracted_sample.jsonl"
+  filtered_file: "final_filtered_file.jsonl"
+  
+  model_path: "Qwen/Qwen2.5-7B-Instruct"  # 用于计算数据IFD分数的模型
+  
+  train_config_path: "configs/model/qwen2.5_lora_sft.yaml" # 模型训练配置

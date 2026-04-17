@@ -1,0 +1,16 @@
+output_root: "./output"  # 实验结果的总输出根目录
+method: "dfa"            # 对应的算法名称，决定了去哪个子目录找 start.py
+step: 2                  # DFA 算法特有的步数控制，决定过滤循环的次数
+
+args:
+  filtered_file: "final_filtered_file.jsonl" # 最终生成的筛选文件名
+  api_key: "sk-..."                          # 调用 LLM Agent 所需的 API 密钥
+  api_url: "http://..."                      # LLM API 的基础访问地址
+  
+  # 目标定义 (Core Targets)
+  target: "过滤低质量SFT数据保留高价值样本"        # 数据过滤的具体准则/目标
+  writer_target: "生成可执行的pipeline代码"       # Agent 生成代码的具体任务目标
+  
+  # 数据路径 (Data Paths)
+  train_file: "dataset/dolly-15k/processed/databricks-dolly-15k_extracted.jsonl"             # 全量待筛选数据集
+  test_train_file: "dataset/dolly-15k/processed/databricks-dolly-15k_extracted_sample.jsonl" # 用于测试/采样的验证集

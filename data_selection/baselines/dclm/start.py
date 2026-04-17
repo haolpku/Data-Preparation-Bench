@@ -11,10 +11,10 @@ from pathlib import Path
 from datetime import datetime
 
 DCLM_ROOT = Path(__file__).resolve().parents[2] / "third_party" / "DCLM"
-BASE_DIR = Path(__file__).resolve().parent.name
-sys.path.insert(0, str(DCLM_ROOT))
-import pprint
-pprint.pprint(sys.path)
+BASE_DIR = Path(__file__).resolve().parent
+if not DCLM_ROOT.exists():
+    raise FileNotFoundError(f"Dependency DCLM not found at {DCLM_ROOT}. Please run 'git submodule update --init'.")
+
 def run_command(command, cwd=None, env=None):
     print(f"Execute Command: {command}")
     import shlex
@@ -69,12 +69,12 @@ def convert_to_dclm(input_file, output_file):
                 if not isinstance(items, list):
                     items = [items] 
             except json.JSONDecodeError as e:
-                print(f"❌ JSON 格式错误: {e}")
+                print(f"❌ JSON format error: {e}")
                 return
         elif input_path.suffix.lower() == ".jsonl":
             items = (json.loads(line) for line in f_in if line.strip())
         else:
-            print(f"⚠️ 无法识别的后缀: {input_path.suffix}，跳过该文件。")
+            print(f"⚠️ Unrecognized suffix: {input_path.suffix}, skipping this file.")
             return
 
         count = 0
@@ -101,7 +101,7 @@ def convert_to_dclm(input_file, output_file):
             
 def preprocess_data(input_file):
     input_file = Path(input_file)
-    share_dir = input_file.parent.parent.absolute() / input_file.stem / BASE_DIR
+    share_dir = input_file.parent.parent.absolute() / input_file.stem / BASE_DIR.name
     converted_file = share_dir / "dclm.jsonl"
     os.makedirs(share_dir, exist_ok=True)
 
@@ -118,33 +118,21 @@ def ensure_ray():
     except:
         subprocess.run("ray start --head --port=6379 --dashboard-port=8265", shell=True, check=True, cwd=DCLM_ROOT)
 
-def merge_jsonl_files(input_paths, output_path):
-    with open(output_path, 'w', encoding='utf-8') as f_out:
-        for file_path in input_paths:
-            if not os.path.exists(file_path):
-                print(f"⚠️ Warning: File {file_path} not found, skipping.")
-                continue
-                
-            with open(file_path, 'r', encoding='utf-8') as f_in:
-                for line in f_in:
-                    if line.strip():
-                        f_out.write(line.strip() + "\n")
-
 def ray_processing(args, shard_list_file, converted_input_file):
     source_ref_paths = register_source(
         input_files=[converted_input_file], 
         source_ref_dir=shard_list_file.parent,
         dataset_name=args.name
     )
-    data_dir = (Path(args.output_root) / "general").absolute()
+    data_dir = (Path(args.output_root) / "ray_process").absolute()
     os.makedirs(data_dir, exist_ok=True)
 
-    # ensure_ray()
     source_ref_paths = ",".join(source_ref_paths)
     config = Path(args.config).absolute()
 
+    exec_file = str(BASE_DIR / "process.py") 
     ray_cmd = (
-        f"{os.path.basename(sys.executable)} ray_processing/process.py "
+        f"{os.path.basename(sys.executable)} {exec_file} "
         f"--source_ref_paths {source_ref_paths} "
         f"--readable_name {args.name} "
         f"--output_dir {data_dir} "
@@ -227,7 +215,6 @@ def parse_args():
     parser.add_argument("--train_file", type=str, required=True)
     parser.add_argument("--filtered_file", required=True)
     parser.add_argument("--output_root", required=True)
-    parser.add_argument("--output_dir", default="./output")
     parser.add_argument("--name", default="my_dataset")
     parser.add_argument("--config", default="./dclm.yaml")
 
@@ -235,26 +222,68 @@ def parse_args():
 
 def main():
     args = parse_args()
+    # Use the filename (without extension) as the dataset name
     args.name = Path(args.train_file).stem
-    shard_list_file, converted_input_file = preprocess_data(args.train_file)
-    update_yaml_source(args.config, args.name)
-    ensure_ray()
+    
+    success = False
+    try:
+        print(f"Starting pipeline for dataset: {args.name}")
 
-    processed_file = ray_processing(args, shard_list_file, converted_input_file)
-
-    dedup_input_dir = processed_file.parent.absolute()
-    dedup_output_dir = (Path(args.output_root) / "dedup").absolute()
-    dedup(str(dedup_input_dir), str(dedup_output_dir))
-    dedup_processed_file = dedup_output_dir / processed_file.name
-    if dedup_processed_file.exists():
-        args.config = str(DCLM_ROOT / "baselines" / "baselines_configs" / "fasttext_filter.yaml")
+        # 1. Data Preprocessing
+        shard_list_file, converted_input_file = preprocess_data(args.train_file)
         update_yaml_source(args.config, args.name)
-        shard_list_file = create_share_file(dedup_output_dir, dedup_processed_file)
-        processed_file = ray_processing(args, shard_list_file, dedup_processed_file)
 
-    run_command("ray stop")
-    filtered_file = Path(args.output_root) / args.filtered_file
-    preprocess_dclm_to_sft(str(processed_file), str(filtered_file))
+        # 2. Start Ray Cluster
+        ensure_ray()
+
+        # 3. Stage 1: Ray Processing (Initial selection/processing)
+        print("Running Stage 1: Ray Processing...")
+        processed_file = ray_processing(args, shard_list_file, converted_input_file)
+
+        # 4. Stage 2: Deduplication
+        if processed_file.exists() and processed_file.stat().st_size > 0:
+            print("Running Stage 2: Deduplication...")
+            dedup_input_dir = processed_file.parent.absolute()
+            dedup_output_dir = (Path(args.output_root) / "dedup").absolute()
+            
+            dedup(str(dedup_input_dir), str(dedup_output_dir))
+            
+            dedup_processed_file = dedup_output_dir / processed_file.name
+            
+            # 5. Stage 3: FastText Filtering
+            if dedup_processed_file.exists() and dedup_processed_file.stat().st_size > 0:
+                print("Running Stage 3: FastText Filtering...")
+                # Switch to the filtering config
+                args.config = str(DCLM_ROOT / "baselines" / "baselines_configs" / "fasttext_filter.yaml")
+                update_yaml_source(args.config, args.name)
+                
+                shard_list_file = create_share_file(dedup_output_dir, dedup_processed_file)
+                processed_file = ray_processing(args, shard_list_file, dedup_processed_file)
+            else:
+                print("Deduplication resulted in an empty file. Skipping Filtering stage.")
+        else:
+            print("Initial processing failed to produce output. Aborting.")
+            return
+
+        # 6. Final Conversion: DCLM format back to SFT format
+        print("Finalizing: Converting processed data back to SFT format...")
+        filtered_file = Path(args.output_root) / args.filtered_file
+        preprocess_dclm_to_sft(str(processed_file), str(filtered_file))
+        
+        success = True
+
+    except Exception as e:
+        print(f"Pipeline failed with error: {e}", exc_info=True)
+    
+    finally:
+        # Crucial: Always shut down Ray to free up GPU/Memory resources
+        print("Cleaning up resources (Stopping Ray)...")
+        subprocess.run(["ray", "stop"], capture_output=True, check=False)
+        
+        if success:
+            print("--- Pipeline Completed Successfully ---")
+        else:
+            print("--- Pipeline Terminated Prematurely ---")
 
 if __name__ == "__main__":
     main()

@@ -1,4 +1,4 @@
-- source: openhermes2_5_alpaca
+- source: databricks-dolly-15k_extracted
   steps:
   - func: url_removal_modifier
   - func: newline_removal_modifier

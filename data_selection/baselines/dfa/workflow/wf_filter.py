@@ -37,7 +37,7 @@ from common_agents.filter_code_debugger import create_code_debugger
 from utils import (
     split_dataset, 
     create_simple_parallel_script, merge_jsonl_results,
-    extract_conversations_to_json, run_python_file
+    run_python_file
 )
 
 PROJDIR = get_project_root()
@@ -130,7 +130,7 @@ def _get_llm_model_name(state: DFState, default: str = "gpt-4o") -> str:
     
 @register("filter")
 def create_filter_graph(state: DFState):
-    builder = GenericGraphBuilder(state_model=DFState, entry_point="preprocess_data_node")
+    builder = GenericGraphBuilder(state_model=DFState, entry_point="operator_qa_node")
     
     # ==========================================
     # 1. Shared Services & RAG Initialization
@@ -398,20 +398,6 @@ def create_filter_graph(state: DFState):
     # ==========================================
     # 3. Node Implementations
     # ==========================================
-    async def preprocess_data_node(s: DFState) -> DFState:
-        from types import SimpleNamespace as _SN
-        from dataflow.utils.storage import FileStorage
-        
-        dataset_path = getattr(s.request, "real_json_file", "")
-        dataset_name = dataset_path.split("/")[-1].split(".")[0] if dataset_path else "dataset"
-        cache_type = os.path.splitext(dataset_path)[1][1:]
-
-        output_json_path = s.request.real_json_file
-        base, ext = os.path.splitext(output_json_path)
-        sample_path = f"{base}_sample{ext}"
-        # s.request.real_json_file = output_json_path
-        s.request.json_file = sample_path
-
     async def operator_qa_node(state: MainState) -> MainState:
         current_api_key = state.request.api_key
         
@@ -529,7 +515,6 @@ def create_filter_graph(state: DFState):
             return "__end__"
 
     nodes = {
-        "preprocess_data_node": preprocess_data_node,
         "operator_qa_node": operator_qa_node,
         "write_filter_pipeline": write_node,
         "filter_llm_instantiate": instantiate_operator_main_node,
@@ -539,7 +524,6 @@ def create_filter_graph(state: DFState):
     }
     
     edges = [
-        ("preprocess_data_node", "operator_qa_node"),
         ("operator_qa_node", "write_filter_pipeline"),
         ("write_filter_pipeline", "filter_llm_instantiate"),
         ("filter_code_debugger", "filter_rewriter"),
