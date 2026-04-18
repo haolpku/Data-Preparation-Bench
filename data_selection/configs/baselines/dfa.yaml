@@ -1,6 +1,6 @@
 output_root: "./output"
 method: "dfa"
-step: 2
+step: -1
 
 args:
   filtered_file: "final_filtered_file.jsonl"

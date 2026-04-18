@@ -1,6 +1,6 @@
-dataset: databricks-dolly-15k_extracted_sample_cherry_llm_20260417_090546_final_filtered_file
-dataset_dir: output/experiments/exp_cherry_llm_Qwen-Qwen2.5-7B_20260417_090546/train/dataset
-output_dir: output/experiments/exp_cherry_llm_Qwen-Qwen2.5-7B_20260417_090546/train/model
+dataset: databricks-dolly-15k_extracted_sample_cherry_llm_20260417_092018_final_filtered_file
+dataset_dir: output/experiments/exp_cherry_llm_Qwen-Qwen2.5-7B_20260417_092018/train/dataset
+output_dir: output/experiments/exp_cherry_llm_Qwen-Qwen2.5-7B_20260417_092018/train/model
 model_name_or_path: Qwen/Qwen2.5-7B
 trust_remote_code: true
 stage: sft
