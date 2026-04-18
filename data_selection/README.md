@@ -18,6 +18,7 @@ cd data_selection
 | **DCLM** | `third_party/DCLM` | [mlfoundations/DCLM](https://github.com/mlfoundations/DCLM.git) | 使用 `bench` 环境 |
 | **Cherry_LLM** | `third_party/Cherry_LLM` | [tianyi-lab/Cherry_LLM](https://github.com/tianyi-lab/Cherry_LLM.git) | 使用 `bench` 环境 |
 | **LlamaFactory** | `third_party/LlamaFactory` | [hiyouga/LlamaFactory](https://github.com/hiyouga/LlamaFactory.git) | 使用 `bench` 环境 |
+
 环境定义:
   * **`dfa` 环境**：专用于运行 **DataFlow-Agent (DFA)** 筛选方法。
   * **`bench` 环境**：通用环境，适用于 **DCLM**、**Cherry-LLM** 筛选，以及**数据预处理**、**模型训练**与**模型评估**。
