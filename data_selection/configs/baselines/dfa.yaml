@@ -4,8 +4,8 @@ step: -1
 
 args:
   filtered_file: "final_filtered_file.jsonl"
-  api_key: "sk-URhU1qxF5iVuW2ZZND5fI0pQcuESJyBt33dv4WGf3JY9dZbI"
-  api_url: "http://172.96.141.132:3001/v1"
+  api_key: "sk-"
+  api_url: ""
   target: "过滤低质量SFT数据保留高价值样本"
   writer_target: "生成可执行的pipeline代码"
   train_file: "dataset/dolly-15k/processed/databricks-dolly-15k_extracted.jsonl"
