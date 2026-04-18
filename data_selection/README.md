@@ -22,7 +22,7 @@ cd data_selection
 
 ### 数据筛选环境
 注意： 考虑到 Baseline 之间可能存在底层库冲突，本项目默认为每个方法推荐独立的环境配置。如果您希望在统一环境下运行，请在安装前核对各模块的依赖限制。
-#### DFA 环境 (dfa)
+#### DFA
 
 ```bash
 conda create -n dfa python==3.11 -y
@@ -33,7 +33,7 @@ pip install -r requirements-data.txt
 pip install -e .
 cd ../.. # 回到 data_selection 根目录
 ```
-#### DCLM 环境
+#### DCLM
 ```bash
 # DCLM
 conda create -n dclm python==3.11 -y
