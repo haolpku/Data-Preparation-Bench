@@ -145,6 +145,7 @@ def _run_llamafactory(config_path, gpu_id=0):
 
 def run_training(train_config_path, train_files, train_config, train_exp_dir, gpu_id=0):
     try:
+        print("Starting Training...")
         # Step 1: Register Dataset
         dataset_dir, ds_name = register_datasets_batch(
             source_data_paths=train_files,
@@ -257,12 +258,6 @@ def run_evaluation(eval_exp_dir, eval_config_path, model_name, model_save_dir):
     with open(custom_save_path, "a", encoding="utf-8") as f:
         f.write(json.dumps(custom_results, ensure_ascii=False) + "\n")
 
-    with open(eval_exp_dir / "report.txt", "w") as f:
-        f.write(f"# 实验评估报告\n\n")
-        f.write(f"| 任务 | 分数 |\n| :--- | :--- |\n")
-        for task, score in custom_results["core_metrics"].items():
-            f.write(f"| {task} | {score:.4f} |\n")
-
 def main():
     parser = argparse.ArgumentParser(description="LLaMA-Factory One-Click Training Script")
     parser.add_argument("--train_config_path", default=None, help="Path to YAML template of training")
@@ -285,7 +280,6 @@ def main():
     model_save_dir = None
     model_name = None
     if args.train_files is not None and args.train_config_path is not None:
-        print("🛠️  正在执行训练逻辑...")
         with open(args.train_config_path, "r", encoding="utf-8") as f:
             train_config = yaml.safe_load(f)
         model_name = train_config["model_name_or_path"]
@@ -298,7 +292,6 @@ def main():
         run_training(args.train_config_path, args.train_files, train_config, train_exp_dir, args.gpu_id)
 
     if args.eval_config_path is not None:
-        print("🛠️  正在执行评估逻辑...")
         if not exp_id:
             exp_id = f"exp_{timestamp}"
         eval_exp_dir = Path(args.output_root) / exp_id / "eval"

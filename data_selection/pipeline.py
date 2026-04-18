@@ -101,7 +101,7 @@ class ResearchPlatform:
     def _generate_filter_id(self) -> str:
         dataset = Path(self.filter_cfg['train_file']).stem
         method = self.filter_cfg['method']
-        return f"{dataset}_{method}_{self.timestamp}"
+        return f"{method}_{dataset}_{self.timestamp}"
 
     def _load_yaml(self, path):
         if not path or not os.path.exists(path):
@@ -134,7 +134,7 @@ class ResearchPlatform:
     def build_filter_command(self):
         args_list = []
         for key, value in self.filter_cfg["args"].items():
-            if key == "train_file": value = str(Path(value).absolute())
+            if key in ("train_file", "test_train_file"): value = str(Path(value).absolute())
             self.add_args(args_list, key, value)
         self.add_args(args_list, "output_root", self.filter_run_dir)
 
@@ -194,7 +194,9 @@ class ResearchPlatform:
                         line = f.readline()
                         if line:
                             data = json.loads(line)
-                            filtered_file = data[str(f_cfg["step"])]
+                            sorted_keys = sorted(data.keys(), key=int)
+                            step_key = sorted_keys[f_cfg["step"]]
+                            filtered_file = data[step_key]
                             filtered_file = self.filter_run_dir / filtered_file
         
         log_p = self.train_and_eval_run_dir / "train_eval.log"
