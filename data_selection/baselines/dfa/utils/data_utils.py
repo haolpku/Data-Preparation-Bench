@@ -70,5 +70,5 @@ def merge_jsonl_results(cache_dir, output_file_pattern, dataset_name):
                 with open(f, 'r', encoding='utf-8') as infile:
                     outfile.write(infile.read())
         
-        merged_paths[step] = str(final_out_path.name)
+        merged_paths[int(step)] = str(final_out_path.name)
     return merged_paths

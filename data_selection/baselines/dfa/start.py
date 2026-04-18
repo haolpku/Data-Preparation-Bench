@@ -15,9 +15,12 @@ from utils import (
     split_dataset, 
     create_simple_parallel_script, merge_jsonl_results,
 )
+from workflow import register_all_workflows
 
 PROJDIR = get_project_root()
 log = get_logger(__name__)
+
+register_all_workflows()
 
 async def run_workflow(name: str, state):
     factory = get_workflow(name)

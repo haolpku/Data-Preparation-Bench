@@ -1,29 +1,3 @@
-# class FilterPipelineWriter:
-#     system_prompt_for_write_filter_pipeline = "You are an expert AI specialized in generating data filtering pipeline code."
-
-#     task_prompt_for_write_filter_pipeline = """
-# [ROLE] You are an expert AI specialized in generating data filtering pipeline code.
-# [TASK] Please refer to the example operators source code and their module position, then write a new pipeline based on the description of target.
-# You must select the operators that can be written to the file.
-
-# [INPUT FORMAT] The input includes:、
-# Don't use DebertaV3Filter operator.
-# - example operators: {example} 
-# - example_data which will be processed: {example_data}
-# - target description: {target}.
-
-# [OUTPUT FORMAT] The JSON structure is as follows:
-# {{
-#   "code": "Complete source code of the pipeline",
-#   "desc": "Description of the pipeline's function and its input/output"
-# }}
-
-# [RULES]
-# 1. Carefully read and understand the structure and style of the example operators and the module position.
-# 2. Write pipeline code that meets the minimum requirements for complete executable according to the functionality described in {target}, without any extra code or comments.
-# 3. Output in JSON format containing two fields: 'code' (the complete source code string of the pipeline) and 'desc' (a concise explanation of what the pipeline does and its input/output).
-# """
-
 class FilterPipelineWriter:
     system_prompt_for_write_filter_pipeline = "You are a senior data architect specializing in Data-Centric AI pipelines."
 
@@ -54,10 +28,82 @@ Generate a clean, executable Python class `DataFilteringPipeline`.
 - In `run`: Call each operator's `.run(storage.step(), ...)` method.
 """
 
+# class FilterPipelineInstantiate:
+#     system_prompt_for_filter_llm_instantiate = """
+# [ROLE]
+# You are a Senior Python Integration Engineer. Your task is to add the entry code to a logical pipeline class in order to obtain a robust and executable entry script.
+# """
+
+#     task_prompt_for_filter_llm_instantiate = """
+# [INPUT DATA]
+# - target: {target}
+# - reference_operators: {reference_operators} (Source code of available operators)
+# - pipeline_code: {pipeline_code} (The existing DataFilteringPipeline class definition)
+# - example_data: {example_data} (Schema of the dataset)
+# - available_keys: {available_keys} (List of columns in the dataset)
+# - preselected_input_key: {preselected_input_key}
+# - test_data_path: {test_data_path} (Input JSONL file path)
+# - output_root: {output_root}
+# - api_url: {api_url}
+# - api_key: {api_key}
+
+# [TASK: GENERATE COMPLETE RUNNABLE ENTRY SCRIPT]
+
+# You must strictly follow these engineering requirements to generate the pipeline code:
+
+# ### 1. MANDATORY HEADER INJECTION
+# The script MUST start with this registry initialization to ensure all operators are loaded:
+# ```python
+# import os
+# from dataflow.utils.registry import OPERATOR_REGISTRY
+# if hasattr(OPERATOR_REGISTRY, "_get_all"):
+#     OPERATOR_REGISTRY._get_all()
+
+# from dataflow.utils.storage import FileStorage
+# # Explicitly import all Operator classes used in pipeline_code from their modules
+# ```
+
+# ### 2. LLM SERVING INITIALIZATION (CONDITIONAL)
+# For EACH operator in `pipeline_code` that accepts `llm_serving` in its `__init__`:
+# - You MUST initialize the serving object:
+# ```python
+# from dataflow.serving import APILLMServing_request
+# os.environ["API_KEY"] = "{api_key}"
+# llm_serving = APILLMServing_request(
+#     api_url="{api_url}",
+#     key_name_of_api_key="API_KEY"
+# )
+# ```
+# - Pass this `llm_serving` instance when instantiating that operator.
+
+# ### 3. STORAGE & DATAFLOW PROTOCOL
+# - **Storage Setup**: Use ONLY `FileStorage` with these exact parameters:
+#   `storage = FileStorage(first_entry_file_name="{test_data_path}", cache_path="{output_root}/", file_name_prefix="dataflow_cache_step", cache_type="jsonl")`
+# - **The .step() Requirement**: When calling `operator.run()`, the first argument MUST be `storage.step()`. 
+#   *Reason: This prevents overwriting the same cache file and ensures a traceable data lineage.*
+
+# ### 4. INDEPENDENT EXECUTION LOGIC
+# - **NO DATA CHAINING**: An operator's return value is a storage key, NOT the data itself. NEVER pass `output1` as an `input_key` to `op2`.
+# - **KEY ALIGNMENT**: Select `input_key` ONLY from `{available_keys}`. Check the operator's `run()` signature in `{reference_operators}` to match the correct parameter names.
+# - **Example Pattern**:
+#   ```python
+#   # Correct way to run independent operators
+#   res1 = op1.run(storage.step(), input_key='text_column')
+#   res2 = op2.run(storage.step(), input_key='text_column') 
+#   ```
+# [STRICT CONSTRAINTS]
+# - DO NOT rewrite the operator class.
+# - DO NOT use `storage.read()` or `storage.write()`.
+
+# # [OUTPUT]
+# # Return ONLY a JSON object with a single key:
+# # {"code": "<complete runnable pipeline source code>"}
+# """
+
 class FilterPipelineInstantiate:
     system_prompt_for_filter_llm_instantiate = """
 [ROLE]
-You are a Senior Python Integration Engineer. Your mission is to wrap a logical pipeline class into a robust, runnable entry script for a Data-Centric AI platform.
+You are a Senior Python Integration Engineer. Your mission is to take an existing logical pipeline class and wrap it into a robust, runnable Python script. You must maintain the class-based structure while adding the necessary initialization and entry point code.
 """
 
     task_prompt_for_filter_llm_instantiate = """
@@ -73,12 +119,12 @@ You are a Senior Python Integration Engineer. Your mission is to wrap a logical 
 - api_url: {api_url}
 - api_key: {api_key}
 
-[TASK: GENERATE COMPLETE RUNNABLE ENTRY SCRIPT]
+[TASK: GENERATE COMPLETE RUNNABLE SCRIPT WITH CLASS RETAINED]
 
-You must strictly follow these engineering requirements to generate the code:
+You must generate a complete Python script that preserves the `DataFilteringPipeline` class from `pipeline_code` and adds an executable entry block. Follow these requirements:
 
-### 1. MANDATORY HEADER INJECTION
-The script MUST start with this registry initialization to ensure all operators are loaded:
+### 1. MANDATORY HEADER & IMPORTS
+- The script MUST start with the registry initialization:
 ```python
 import os
 from dataflow.utils.registry import OPERATOR_REGISTRY
@@ -86,145 +132,48 @@ if hasattr(OPERATOR_REGISTRY, "_get_all"):
     OPERATOR_REGISTRY._get_all()
 
 from dataflow.utils.storage import FileStorage
-# Explicitly import all Operator classes used in pipeline_code from their modules
-```
+# Explicitly import all Operator classes used in pipeline_code
+````
 
-### 2. LLM SERVING INITIALIZATION (CONDITIONAL)
-For EACH operator in `pipeline_code` that accepts `llm_serving` in its `__init__`:
-- You MUST initialize the serving object:
+### 2\. CLASS PRESERVATION & LLM INJECTION
+
+  - **RETAIN THE CLASS**: Keep the `DataFilteringPipeline` class structure.
+  - **LLM Serving**: If any operator in the class requires `llm_serving`, initialize the `APILLMServing_request` in the `__main__` block and pass it during the class instantiation or operator setup.
+
+<!-- end list -->
+
 ```python
 from dataflow.serving import APILLMServing_request
 os.environ["API_KEY"] = "{api_key}"
-llm_serving = APILLMServing_request(
-    api_url="{api_url}",
-    key_name_of_api_key="API_KEY"
-)
+llm_serving = APILLMServing_request(api_url="{api_url}", key_name_of_api_key="API_KEY")
 ```
-- Pass this `llm_serving` instance when instantiating that operator.
 
-### 3. STORAGE & DATAFLOW PROTOCOL
-- **Storage Setup**: Use ONLY `FileStorage` with these exact parameters:
-  `storage = FileStorage(first_entry_file_name="{test_data_path}", cache_path="{output_root}/", file_name_prefix="dataflow_cache_step", cache_type="jsonl")`
-- **The .step() Requirement**: When calling `operator.run()`, the first argument MUST be `storage.step()`. 
-  *Reason: This prevents overwriting the same cache file and ensures a traceable data lineage.*
+### 3\. STORAGE & LINEAGE PROTOCOL (INSIDE CLASS METHODS)
 
-### 4. INDEPENDENT EXECUTION LOGIC
-- **NO DATA CHAINING**: An operator's return value is a storage key, NOT the data itself. NEVER pass `output1` as an `input_key` to `op2`.
-- **KEY ALIGNMENT**: Select `input_key` ONLY from `{available_keys}`. Check the operator's `run()` signature in `{reference_operators}` to match the correct parameter names.
-- **Example Pattern**:
-  ```python
-  # Correct way to run independent operators
-  res1 = op1.run(storage.step(), input_key='text_column')
-  res2 = op2.run(storage.step(), input_key='text_column') 
-  ```
+  - **Class Integration**: The class methods (e.g., `run`) must be designed to accept a `storage` object.
+  - **The .step() Requirement**: Inside the class methods, every time an operator's `.run()` is called, the first argument MUST be `storage.step()`. This ensures traceable data lineage for each filtering step.
+  - **Independent Execution**: Within the class logic, ensure operators run independently on the `{available_keys}`. NEVER chain the output key of one operator as the input of another.
+
+### 4\. ENTRY POINT (THE IF-MAIN BLOCK)
+
+  - Add a standard `if __name__ == "__main__":` block at the end of the script.
+  - **Inside this block**:
+    1.  Initialize `FileStorage` with: `first_entry_file_name="{test_data_path}"`, `cache_path="{output_root}/"`, `file_name_prefix="dataflow_cache_step"`, `cache_type="jsonl"`.
+    2.  Instantiate the `DataFilteringPipeline` class.
+    3.  Execute the pipeline by calling its primary method, passing the initialized `storage`.
+    4.  Print the final execution results.
+
 [STRICT CONSTRAINTS]
-- DO NOT rewrite the operator class.
-- DO NOT use `storage.read()` or `storage.write()`.
+
+  - DO NOT delete or flatten the `DataFilteringPipeline` class into a top-level script.
+  - DO NOT use `storage.read()` or `storage.write()`.
+  - Ensure all input keys match `{available_keys}`.
 
 # [OUTPUT]
 # Return ONLY a JSON object with a single key:
-# {"code": "<complete runnable source code>"}
+# {{"code": "\<complete source code including class and if-main block\>"}}
+
 """
-
-# class FilterPipelineInstantiate:
-#     system_prompt_for_filter_llm_instantiate = """
-# [ROLE]
-# You are a data pipeline code integration assistant that generates runnable pipeline code using EXISTING operator classes.
-# """
-
-#     task_prompt_for_filter_llm_instantiate = """
-# [INPUTS]
-# - target: {target}
-# - reference_operators: {reference_operators}
-# - pipeline_code: {pipeline_code}  # The DataFilteringPipeline class definition - USE THIS EXACT CLASS
-# - example_data: {example_data}
-# - available_keys: {available_keys}
-# - preselected_input_key: {preselected_input_key}
-# - test_data_path: {test_data_path}
-
-# [TASK: GENERATE COMPLETE RUNNABLE CODE]
-
-# You must generate code that follows these rules EXACTLY:
-
-# 1. **USE THE PROVIDED PIPELINE CLASS**
-#    - Paste the EXACT DataFilteringPipeline class from pipeline_code verbatim
-#    - DO NOT modify or create a different pipeline class
-
-# 2. **CORRECT IMPORTS**
-#    ```python
-#    from dataflow.utils.registry import OPERATOR_REGISTRY
-#    if hasattr(OPERATOR_REGISTRY, "_get_all"):
-#        OPERATOR_REGISTRY._get_all()
-   
-#    from dataflow.utils.storage import FileStorage
-#    # Import ALL operators used in the pipeline_code
-#    # Check pipeline_code to see which operators need to be imported
-#    ```
-
-# 3. **STORAGE SETUP**
-#    ```python
-#    storage = FileStorage(
-#        first_entry_file_name={test_data_path},
-#        cache_path="{output_root}/",
-#        file_name_prefix="dataflow_cache_step",
-#        cache_type="jsonl"
-#    )
-#    ```
-#    Don't use DataFlowStorage or create your own storage class - use the real FileStorage as shown above, with the correct parameters.
-
-# 4. **OPERATOR PARAMETER HANDLING - CRITICAL**
-#    For EACH operator.run() call in the pipeline:
-#    - **Check the operator's run() method signature** from its imported class
-#    - ONLY pass parameters that exist in that signature
-#    - **OPERATORS ARE INDEPENDENT** - NEVER use one operator's return value as input to another operator
-#    - For key parameters (ending with "_key"):
-#      * Use values ONLY from available_keys (the original dataset column names)
-#      * NEVER use another operator's output key as input
-#      * If a key parameter's name doesn't match any available_keys, set it to None
-#    - If you use operators, you must use a statement like "storage = storage.step()" every time you call the "run()" function, so that the data set output by each operator is a different file.
-#    - Each operator.run() returns a storage key, NOT the actual data - DO NOT chain them
-
-# 5. **Additional LLM SERVING INITIALIZATION**
-#     -For EACH operator that has llm_serving parameter in its init:
-#     -Pass the initialized llm_serving object to the operator
-#     -If imports are missing, add: from dataflow.serving import APILLMServing_request.
-#     os.environ["API_KEY"] = "{api_key}"
-#     -llm_serving = APILLMServing_request(
-#         api_url="{api_url}",
-#         key_name_of_api_key="API_KEY"
-#     )
-#     -Example: self.operator = OperatorClass(llm_serving=llm_serving, ...)
-    
-# 6. **COMMON MISTAKES TO AVOID**
-#    ❌ WRONG - DO NOT DO THIS:
-#       output1 = op1.run(storage.step(), input_key='instruction')
-#       output2 = op2.run(storage.step(), input_key=output1)  # NEVER chain operators
-   
-#    ✅ CORRECT:
-#       output1 = op1.run(storage.step(), input_key='instruction')
-#       output2 = op2.run(storage.step(), input_key='instruction')  # Use original key
-#       # Each operator runs independently on the same original data
-
-# 6. **KEY SELECTION & OUTPUT**
-#    - Select input_key from available_keys (prefer preselected_input_key if it exists)
-#    - Print exactly: [selected_input_key] <the_key>
-#    - Print output location after execution
-
-# [STRICT CONSTRAINTS]
-# - **DO NOT** create your own FileStorage or operator classes - import the real ones
-# - **DO NOT** modify the pipeline_code class
-# - **DO NOT** pass parameters that don't exist in an operator's run() signature
-# - **DO NOT** call storage.read() or storage.write()
-# - **DO NOT** use one operator's return value as input to another operator
-# - **DO NOT** chain operators in any form
-# - **ALWAYS** pass storage.step() (with parentheses) to run() methods
-# - **ALWAYS** use available_keys for key parameters, or None if not available
-# - **ALWAYS** treat each operator as independent - they all read from the original dataset
-
-# [OUTPUT]
-# Return ONLY a JSON object with a single key:
-# {"code": "<complete runnable source code>"}
-# """
 
 class FilterDebugPipeline:
     system_prompt_for_filter_code_debugging = """
