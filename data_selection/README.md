@@ -21,7 +21,7 @@ cd data_selection
 
 
 ### 数据筛选环境
-注意： 考虑到 Baseline 之间可能存在底层库冲突，本项目默认为每个方法推荐独立的环境配置。如果您希望在统一环境下运行，请在安装前核对各模块的依赖限制。
+注意: 考虑到 Baseline 之间可能存在底层库冲突，本项目默认为每个方法推荐独立的环境配置。如果您希望在统一环境下运行，请在安装前核对各模块的依赖限制。
 #### DFA
 
 ```bash
@@ -102,10 +102,14 @@ python preprocess_data.py --train_file dataset/OpenHermes-2.5
 
 ## 3\. 运行指南
 
-### 3.1 方式 1：一键自动化流水线
+### 3.1 方式 1:一键自动化流水线
 
 `pipeline.py` 支持跨环境调度。用户需根据所选的筛选方法激活对应环境启动，程序会根据配置自动调用 `--env_name` 执行后续阶段。训练和评估会自动调用筛选阶段得到的数据集。
- * 自动化衔接：训练阶段会自动解析筛选阶段生成的路径索引。对于 DFA 这种多步筛选方法，程序会根据 filter_config 中指定的 step 自动选择对应的中间结果数据集。
+* **自动化衔接**:训练阶段会自动解析筛选产出的路径索引。对于 **DFA** 等多步筛选方法，程序会根据 `filter_config` 中的 `step` 自动加载对应的中间结果。
+* **配置要求**:
+    * 待过滤数据集路径需写在 `filter_config` 的 `train_file` 字段中。
+    * **DFA 特有**: 需额外提供 `test_train_file`（通常为原文件名加 `_sample` 后缀）。
+* **限制**:筛选阶段目前仅支持处理单个数据集文件。
 ```bash
 conda activate dfa 
 python pipeline.py \
@@ -116,18 +120,23 @@ python pipeline.py \
     --env_name bench
 ```
 
-### 3.2 方式 2：分步手动执行
-直接通过 pipeline.py 传入数据并指定 stage。这种方式会自动加载配置并管理执行流。
-1.  **数据筛选**：需进入该方法指定的 Conda 环境执行。
+### 3.2 方式 2:分步手动执行
+通过 `--stage` 参数可以灵活控制执行流。
+#### 1. 数据筛选:
+* 须在各 Baseline 指定的 Conda 环境中执行。
+
+* **限制**: 目前仅支持单个文件输入。
 ```bash
 conda activate bench
 python pipeline.py \
     --stage filter \
     --filter_config configs/baselines/dfa.yaml 
 ```
-2.  **模型训练与评估**：统一使用 **`bench`** 环境。
-此时模型将基于 --train_files 传入的路径进行训练。
- * 注意：DFA 筛选出的 final_filtered_file.jsonl 存储的是各步结果的路径清单而非数据本身。单独执行训练时，请直接传入具体的数据文件路径（如 merge_step1.jsonl 或 merge_step2.jsonl）。
+#### 2. **模型训练与评估**:
+统一在 **`bench`** 环境下执行。
+
+* **多文件支持**:此模式下支持在 `--train_files` 中同时传入多个数据集文件进行训练。
+* **⚠️ DFA 特殊说明**:DFA 产出的 `final_filtered_file.jsonl` 仅为**路径索引文件**。手动执行训练时，请直接在 `--train_files` 中传入具体的数据文件（如 `merge_step1.jsonl`）。
 ```bash
 conda activate bench
 python pipeline.py \
