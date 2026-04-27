@@ -5,6 +5,7 @@ description = "Distance Computation Package for Data Preparation Bench"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
+    "aiofiles",
     "aiohttp",
     "datasets",
     "modelscope",
