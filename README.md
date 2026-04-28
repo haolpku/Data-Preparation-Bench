@@ -48,7 +48,7 @@ The example script [compute_mmd.py](./examples/compute_mmd.py) demonstrates how 
 1. **Start a vLLM embedding server** (e.g., serving `Qwen/Qwen3-Embedding-8B`):
 
    ```bash
-   vllm serve Qwen/Qwen3-Embedding-8B --task embed
+   vllm serve Qwen/Qwen3-Embedding-8B --runner pooling --trust-remote-code --max-model-len 40960 --served-model-name Qwen/Qwen3-Embedding-8B --dtype bfloat16 --seed 42
    ```
 
 2. **Configure the datasets** in `compute_mmd.py`:
