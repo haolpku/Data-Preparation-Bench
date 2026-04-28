@@ -12,7 +12,7 @@ from distflow.data.data_formatter import (
     ShareGptFormatter,
 )
 from distflow.data.data_loader import load_dataset
-from distflow.embed.vllm import VllmEmbed
+from distflow.embed.openai_embed import OpenAIEmbed
 from distflow.mmd import MMDDistance
 from distflow.utils import logger
 from distflow.utils.timing import (
@@ -21,19 +21,20 @@ from distflow.utils.timing import (
     reset_timing,
 )
 
-# ==================== 配置区域 ====================
+# ==================== Configuration ====================
 
-# 嵌入模型配置
+# Embedding model (served via vLLM OpenAI-compatible API)
 EMBEDDING_MODEL = "Qwen/Qwen3-Embedding-8B"
-TENSOR_PARALLEL_SIZE = 1
-GPU_MEMORY_UTILIZATION = 0.95
-MAX_NUM_SEQS = 4096
-TRUNCATE_MAX_LENGTH = 40960
+OPENAI_BASE_URL = "http://localhost:8000/v1"
+OPENAI_API_KEY = "EMPTY"
+MAX_CONCURRENT_REQUESTS = 1024
+TRUNCATE_PROMPT_TOKENS = 40960
 
-# RBF 核函数配置
+# RBF kernel configuration
 SIGMA_CONSTANT_VALUE = 1.0
 BIAS = True
 
+# Dataset 1 configuration
 DS1_CONFIG = {
     "name": "oda-math",
     "data_path": "OpenDataArena/ODA-Math-460k",
@@ -46,6 +47,7 @@ formatter1 = AlpacaFormatter(
     assistant_key="response",
 )
 
+# Dataset 2 configuration
 DS2_CONFIG = {
     "name": "infinity-instruct",
     "data_path": "BAAI/Infinity-Instruct",
@@ -58,40 +60,42 @@ formatter2 = ShareGptFormatter(
 )
 
 
-# ==================== 工具函数 ====================
+# ==================== Utilities ====================
 
 
 def save_json(data: dict[str, Any], path: str) -> None:
-    """保存数据为 JSON 文件."""
+    """Save data as a JSON file."""
     with open(path, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
 
 
-# ==================== 主函数 ====================
+# ==================== Main ====================
 
 
 def main() -> None:
-    """程序入口点."""
-    parser = argparse.ArgumentParser(description="计算两个数据集之间的 MMD 距离")
+    """Entry point."""
+    parser = argparse.ArgumentParser(
+        description="Compute MMD distance between two datasets"
+    )
     parser.add_argument(
         "--output",
         type=str,
         default=None,
-        help="输出目录路径",
+        help="Output directory path",
     )
     args = parser.parse_args()
 
     output_dir: str | None = args.output
 
     logger.info("=" * 60)
-    logger.info("MMD 距离计算任务启动")
+    logger.info("MMD distance computation started")
     logger.info("=" * 60)
 
-    # 重置计时器
+    # Reset timers
     reset_timing()
     total_start = time.perf_counter()
 
-    # 加载数据集
+    # Load datasets
     ds1_name, ds1_items = load_dataset(
         dataset_name=DS1_CONFIG["name"],
         data_path=DS1_CONFIG["data_path"],
@@ -112,21 +116,22 @@ def main() -> None:
         shuffle_seed=DS2_CONFIG["shuffle_seed"],
     )
 
-    logger.info(f"数据集1加载完成: {ds1_name}, 样本数: {len(ds1_items)}")
-    logger.info(f"数据集2加载完成: {ds2_name}, 样本数: {len(ds2_items)}")
+    logger.info(f"Dataset 1 loaded: {ds1_name}, samples: {len(ds1_items)}")
+    logger.info(f"Dataset 2 loaded: {ds2_name}, samples: {len(ds2_items)}")
 
-    # 初始化嵌入模型
-    logger.info(f"初始化嵌入模型: {EMBEDDING_MODEL}")
-    embedder = VllmEmbed(
+    # Initialize embedding model (vLLM OpenAI-compatible API)
+    logger.info(f"Initializing embedder: {EMBEDDING_MODEL}")
+    embedder = OpenAIEmbed(
         model_name=EMBEDDING_MODEL,
-        tensor_parallel_size=TENSOR_PARALLEL_SIZE,
-        gpu_memory_utilization=GPU_MEMORY_UTILIZATION,
-        max_num_seqs=MAX_NUM_SEQS,
-        truncate_max_length=TRUNCATE_MAX_LENGTH,
+        base_url=OPENAI_BASE_URL,
+        api_key=OPENAI_API_KEY,
+        max_concurrent_requests=MAX_CONCURRENT_REQUESTS,
+        truncate_prompt_tokens=TRUNCATE_PROMPT_TOKENS,
+        truncation_side="right",
     )
 
-    # 初始化 MMD 距离计算器
-    logger.info(f"初始化 MMD 距离计算器, 有偏估计: {BIAS}")
+    # Initialize MMD distance calculator
+    logger.info(f"Initializing MMD calculator, biased estimator: {BIAS}")
     distance = MMDDistance(
         embedder=embedder,
         kernel_type="RBF",
@@ -134,26 +139,26 @@ def main() -> None:
         rbf_sigma=SIGMA_CONSTANT_VALUE,
     )
 
-    # 计算 MMD 距离
-    logger.info(f"开始计算 MMD 距离: {ds1_name} vs {ds2_name}")
+    # Compute MMD distance
+    logger.info(f"Computing MMD distance: {ds1_name} vs {ds2_name}")
     print(f"Computing MMD distance: {ds1_name} vs {ds2_name}...")
 
     results = distance.compute(ds1_items, ds2_items)
     mmd_value = results[0].value
 
-    logger.info(f"MMD 距离计算完成: {mmd_value:.6f}")
+    logger.info(f"MMD distance computed: {mmd_value:.6f}")
     print(f"MMD Value: {mmd_value}")
 
-    # 计算总时间
+    # Total time
     total_time = time.perf_counter() - total_start
 
-    # 打印时间报告
+    # Timing report
     print(get_timing_report())
-    print(f"  {'总耗时':<20} : {total_time:>8.3f}s")
+    print(f"  {'Total time':<20} : {total_time:>8.3f}s")
     print("=" * 60)
-    logger.info(f"任务总耗时: {total_time:.3f} 秒")
+    logger.info(f"Total time: {total_time:.3f}s")
 
-    # 保存结果
+    # Save results
     if output_dir is not None:
         os.makedirs(output_dir, exist_ok=True)
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -187,10 +192,10 @@ def main() -> None:
         }
 
         save_json(result_data, output_path)
-        logger.info(f"结果已保存到: {output_path}")
+        logger.info(f"Results saved to: {output_path}")
         print(f"Results saved to: {output_path}")
 
-    logger.info("MMD 距离计算任务完成")
+    logger.info("MMD distance computation finished")
 
 
 if __name__ == "__main__":
