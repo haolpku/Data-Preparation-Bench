@@ -1,0 +1,12 @@
+output_root: "./output"
+method: "dfa"
+step: -1
+
+args:
+  filtered_file: "final_filtered_file.jsonl"
+  api_key: "sk-"
+  api_url: ""
+  target: "过滤低质量SFT数据保留高价值样本"
+  writer_target: "生成可执行的pipeline代码"
+  train_file: "dataset/dolly-15k/processed/databricks-dolly-15k_extracted.jsonl"
+  test_train_file: "dataset/dolly-15k/processed/databricks-dolly-15k_extracted_sample.jsonl"

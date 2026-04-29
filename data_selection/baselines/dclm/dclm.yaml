@@ -1,0 +1,59 @@
+- source: databricks-dolly-15k_extracted
+  steps:
+  - func: url_removal_modifier
+  - func: newline_removal_modifier
+    max_consecutive: 2
+  - func: detect_lang_whole_page_enricher
+    model: fasttext
+    key_prefix: language_id_whole_page
+  - func: language_filter
+    key: language_id_whole_page_fasttext
+    keep_languages:
+    - en
+    threshold: 0.65
+  - func: page_length_filter
+    length_type: word
+    min_length: 50
+    max_length: 100000
+    ignore_punctuation: true
+  - func: word_length_filter
+    min_length: 3
+    max_length: 10
+  - func: symbol_ratio_filter
+    max_symbol_to_word_ratio: 0.1
+  - func: bullet_count_filter
+    max_bullet_start_ratio: 0.9
+  - func: ellipsis_count_filter
+    max_ellipsis_end_ratio: 0.3
+  - func: alphabetic_word_ratio_filter
+    max_ratio: 0.2
+  - func: stop_word_filter
+    count_unique: false
+    min_stop_word: 2
+  - func: massive_web_repetition_filters
+  - func: word_counter_enricher
+    key: previous_word_count
+  - func: uppercase_ratio_line_modifier
+    max_ratio: 0.5
+  - func: numeric_ratio_line_modifier
+    max_ratio: 0.999999
+  - func: counter_line_modifier
+  - func: line_length_modifier
+    min_length: 2
+  - func: substring_line_modifier
+    max_length: 10
+    banlist: items in cart
+    remove_substring_only: true
+  - func: substring_line_modifier
+    max_length: 10
+    banlist: Read more...
+    location: suffix
+    remove_substring_only: true
+  - func: substring_line_modifier
+    max_length: 10
+    banlist: Sign-in
+    location: prefix
+    remove_substring_only: true
+  - func: word_removal_ratio_filter
+    prev_word_count_key: previous_word_count
+    max_removed_ratio: 0.05

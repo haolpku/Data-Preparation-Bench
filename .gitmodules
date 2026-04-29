@@ -1,0 +1,12 @@
+[submodule "data_selection/third_party/Cherry_LLM"]
+	path = data_selection/third_party/Cherry_LLM
+	url = https://github.com/tianyi-lab/Cherry_LLM.git
+[submodule "data_selection/third_party/LlamaFactory"]
+	path = data_selection/third_party/LlamaFactory
+	url = https://github.com/hiyouga/LlamaFactory.git
+[submodule "data_selection/third_party/DataFlow-Agent"]
+	path = data_selection/third_party/DataFlow-Agent
+	url = https://github.com/OpenDCAI/DataFlow-Agent.git
+[submodule "data_selection/third_party/DCLM"]
+	path = data_selection/third_party/DCLM
+	url = https://github.com/mlfoundations/dclm.git

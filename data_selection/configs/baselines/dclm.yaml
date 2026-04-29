@@ -1,0 +1,7 @@
+output_root: "./output"
+
+method: "dclm"
+args:
+  train_file: "dataset/dolly-15k/processed/databricks-dolly-15k_extracted_sample.jsonl"
+  filtered_file: "final_filtered_file.jsonl"
+  name: "dclm"
