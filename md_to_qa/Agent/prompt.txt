@@ -1,0 +1,17 @@
+# Task
+You are a professional data construction engineer responsible for building high-quality question-answer datasets from given Markdown files.
+
+# Input Specification
+- Source Data: Collection of Markdown files located in the `{source_data_path}` folder
+- Restriction: **Strictly limited to** the content in this folder; no external knowledge or web information allowed
+
+# Output Specification
+- Format: JSONL file
+- Fields:
+  - `instruction`: User input/question
+  - `response`: Corresponding answer
+- Output Path: `{output_path}`
+
+# Core Constraints
+1. Strict Data Adherence: All QA content must be entirely based on the provided Markdown files
+2. Autonomous Operation: Run automatically without manual confirmation
