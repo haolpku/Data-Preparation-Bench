@@ -1,8 +1,10 @@
-# distflow
+# Data Preparation Bench
+
+## Data Quality
 
 A Python package for computing distributional distances (e.g., MMD) between datasets, designed for evaluating data preparation quality in LLM training pipelines.
 
-## Installation
+### Installation
 
 The package is published on PyPI and can be installed via pip:
 
@@ -16,7 +18,7 @@ For vLLM embedding support, install the optional dependency:
 pip install distflow[vllm]
 ```
 
-### Development Setup
+#### Development Setup
 
 This project uses [uv](https://docs.astral.sh/uv/) for dependency management. To get started:
 
@@ -39,9 +41,9 @@ Before committing, format and lint the code:
 uv run pre-commit run --all-files
 ```
 
-## Quick Start
+### Quick Start
 
-### Computing MMD Distance
+#### Computing MMD Distance
 
 The example script [compute_mmd.py](./examples/compute_mmd.py) demonstrates how to compute MMD distance between two datasets using the vLLM OpenAI-compatible embedding API.
 
@@ -100,7 +102,7 @@ The example script [compute_mmd.py](./examples/compute_mmd.py) demonstrates how 
    uv run examples/compute_mmd.py --output results/
    ```
 
-### Running Quality Benchmark
+#### Running Quality Benchmark
 
 The example script [run_benchmark.py](./examples/run_benchmark.py) shows how to evaluate a custom data-quality metric by measuring its correlation with downstream task accuracy.
 
@@ -139,7 +141,7 @@ The example script [run_benchmark.py](./examples/run_benchmark.py) shows how to 
 
    The benchmark computes Pearson / Spearman correlation and a linear fit between your metric and the provided accuracies.
 
-### Key Parameters
+#### Key Parameters
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
@@ -150,7 +152,7 @@ The example script [run_benchmark.py](./examples/run_benchmark.py) shows how to 
 | `SIGMA_CONSTANT_VALUE` | `1.0` | RBF kernel bandwidth |
 | `BIAS` | `True` | Use biased MMD estimator |
 
-### Package Dependencies
+#### Package Dependencies
 
 Core dependencies (see `pyproject.toml`):
 
@@ -164,6 +166,45 @@ Optional:
 
 - `vllm` (for local vLLM embedding via `VllmEmbed`)
 
-## Experiment Settings
+### Experiment Settings
 
 Please refer to [Experiment.md](./Experiment.md) for detailed experiment configurations.
+
+## Data Construction
+
+The Data Construction module converts Markdown books and long-form documents into structured supervision datasets for LLM fine-tuning. It targets book-to-SFT workflows where full content coverage, resumable execution, and quality control are required.
+
+### Dataset Outputs
+
+The pipeline compiles source knowledge into three complementary supervision forms:
+
+- **Concept QA** — Atomic, reusable knowledge such as definitions, categories, rules, mechanisms, purposes, and constraints.
+- **Process QA** — Concise, grounded reasoning patterns including condition checking, rule application, causal explanation, comparison, exception handling, and step ordering.
+- **Case Application** — Knowledge transfer into realistic, source-grounded scenarios where the model must analyze a situation and apply domain knowledge.
+
+### Pipeline Overview
+
+1. **Corpus Preparation** — Build a manifest from a directory of Markdown files and split long documents into overlapping chunks.
+2. **Knowledge Cleaning** — Clean and normalize chunks to remove boilerplate and improve semantic coherence.
+3. **QA Generation** — Generate the three supervision forms above from each chunk via LLM-based operators.
+4. **Scoring & Filtering** — Score generated QA pairs and filter out low-quality items.
+5. **Validation & Coverage Audit** — Ensure every chunk reaches a final state (`kept` or `skipped`) and report coverage statistics.
+
+The pipeline is resumable and tracks progress via `chunk_status.jsonl`, making it suitable for long-running batch jobs.
+
+### Implementation Layout
+
+| Path | Description |
+|------|-------------|
+| `md_to_qa/DataFlow/` | Core pipeline implementations, including chunking, cleaning, generation, scoring, and filtering operators. |
+| `md_to_qa/LLM/` | Batch and domain processing scripts for large-scale data generation. |
+| `md_to_qa/SKILL/` | Skill definitions, reference materials, and helper scripts for Markdown-to-QA conversion. |
+| `md_to_qa/Agent/` | Agent prompts and task specifications for automated dataset construction. |
+
+### Data Construction Skill
+
+The underlying data-construction skill is also published as a standalone, reusable skill:
+
+- **Skill:** [data-construction-skill](https://clawhub.ai/technomad-ds/data-construction-skill)
+
+You can reference or import this skill directly in compatible agent frameworks.

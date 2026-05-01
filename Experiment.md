@@ -60,7 +60,7 @@ We use DeepSpeed ZeRO-3 for distributed training. Chat templates are set accordi
 | Domain | Dataset | Samples |
 |--------|---------|---------|
 | Math | [OpenR1-Math-220k](https://huggingface.co/datasets/open-r1/OpenR1-Math-220k) | 20,000 |
-| Math | [ODA-Math-460k](https://huggingface.co/datasets/) | 20,000 |
+| Math | [ODA-Math-460k](https://huggingface.co/datasets/OpenDataArena/ODA-Math-460k) | 20,000 |
 | Math | [ScaleQuest](https://huggingface.co/datasets/dyyyyyyyy/ScaleQuest-Math) | 20,000 |
 | Math | [Synthetic-1](https://huggingface.co/datasets/PrimeIntellect/SYNTHETIC-1) | 20,000 |
 | General | [Infinity-Instruct](https://huggingface.co/datasets/BAAI/Infinity-Instruct) | 20,000 |
@@ -70,11 +70,11 @@ We use DeepSpeed ZeRO-3 for distributed training. Chat templates are set accordi
 | General | [WizardLM_evol_instruct_V2_196k](https://huggingface.co/datasets/WizardLMTeam/WizardLM_evol_instruct_V2_196k) | 20,000 |
 | General | [tulu-3-sft-mixture](https://huggingface.co/datasets/allenai/tulu-3-sft-mixture) | 20,000 |
 | General | [smoltalk-chinese](https://huggingface.co/datasets/opencsg/smoltalk-chinese) | 20,000 |
-| Science | [MegaScience](https://huggingface.co/datasets/) | 20,000 |
+| Science | [MegaScience](https://huggingface.co/datasets/MegaScience/MegaScience) | 20,000 |
 | Science | [Nemotron-Science-v1](https://huggingface.co/datasets/nvidia/Nemotron-Science-v1) | 20,000 |
 | Medical | [UltraMedical](https://huggingface.co/datasets/TsinghuaC3I/UltraMedical) | 20,000 |
 | Finance | [Finance-Instruct-500k](https://huggingface.co/datasets/Josephgflowers/Finance-Instruct-500k) | 20,000 |
-| Law | [Lawyer-Llama](https://huggingface.co/datasets/) | 20,000 |
+| Law | [Lawyer-Llama](https://github.com/AndrewZhe/lawyer-llama) | 20,000 |
 
 For data construction experiments, [Dolly-15k](https://huggingface.co/datasets/databricks/databricks-dolly-15k) is additionally incorporated during fine-tuning.
 
@@ -116,9 +116,9 @@ Finance evaluation uses XFinBench, FinEval-KR, and CPA-QKA.
 
 Law evaluation uses LegalBench and LexGLUE.
 
-> For benchmarks consisting of multiple subtasks, we report the average score across all subtasks. For tasks evaluated by exact answer matching, we additionally employ an LLM-as-a-judge protocol.
+> For benchmarks consisting of multiple subtasks, we report the average score across all subtasks. For tasks evaluated by exact answer matching in Medical, Finance and Law, we additionally employ an LLM-as-a-judge protocol.
 
-Models are served using vLLM for inference.
+Models are served using vLLM for inference in Medical, Finance and Law.
 
 ## Data Quality Evaluation
 
