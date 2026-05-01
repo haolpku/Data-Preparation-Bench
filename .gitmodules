@@ -1,0 +1,9 @@
+[submodule "Data-Agent-Evaluation/lm-evaluation-harness"]
+	path = Data-Agent-Evaluation/lm-evaluation-harness
+	url = https://github.com/EleutherAI/lm-evaluation-harness
+[submodule "Data-Agent-Evaluation/lm-open-science-evaluation"]
+	path = Data-Agent-Evaluation/lm-open-science-evaluation
+	url = https://github.com/yibotongxue/lm-open-science-evaluation.git
+[submodule "Data-Agent-Evaluation/Qwen2.5-Math"]
+	path = Data-Agent-Evaluation/Qwen2.5-Math
+	url = https://github.com/yibotongxue/Qwen2.5-Math.git
