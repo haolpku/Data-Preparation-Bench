@@ -1,8 +1,8 @@
-# Experiment Settings
+# Experiment Settings and Results
 
-## MMD Computation
+## MMD Computing
 
-For MMD computation, please refer to [compute_mmd.py](./examples/compute_mmd.py). Embeddings are obtained via a vLLM OpenAI-compatible embedding server using the async `OpenAIEmbed` client (`distflow.embed.openai_embed`). Key hyperparameters are configured as follows:
+The following settings are employed in our experiments:
 
 - Embedding model: [Qwen3-Embedding-8B](https://huggingface.co/Qwen/Qwen3-Embedding-8B) (4096-dimensional)
 - Truncate length: 40960 tokens (right truncation)
@@ -16,26 +16,37 @@ For MMD computation, please refer to [compute_mmd.py](./examples/compute_mmd.py)
 - Math: [ODA-Math-460k](https://huggingface.co/datasets/OpenDataArena/ODA-Math-460k)
 - General Text: [Infinity-Instruct](https://huggingface.co/datasets/BAAI/Infinity-Instruct)
 - Medical: [ReasonMed](https://huggingface.co/datasets/lingshu-medical-mllm/ReasonMed)
-- Science: [Logics-STEM](https://arxiv.org/abs/2601.01562)
-- Finance: [Fin-o1](https://arxiv.org/abs/2502.08127)
-- Law: [DISC-Law-SFT](https://arxiv.org/abs/2309.11325)
+- Science: [Logics-STEM](https://huggingface.co/datasets/Logics-MLLM/Logics-STEM-SFT-Dataset-Open-5.3M)
+- Finance: [Fin-o1](https://huggingface.co/datasets/TheFinAI/FinCoT)
+- Law: [DISC-Law-SFT](https://huggingface.co/datasets/ShengbinYue/DISC-Law-SFT)
 
-The experiments were conducted with the following package versions:
+Our experiments were conducted with the following package versions:
 
 - Python: 3.12.12
 - vllm: 0.16.0
 - torch: 2.9.1+cu128
 - transformers: 4.57.6
-- openai: 2.31.0
-- sentence-transformers: 5.4.0
-- uv: 0.10.0
 
 ## Training
 
-Training is conducted using [LlamaFactory](https://github.com/hiyouga/LlamaFactory). Base models include:
-- [Qwen2.5-7B](https://huggingface.co/Qwen/Qwen2.5-7B)
-- [Llama-3.1-8B](https://huggingface.co/meta-llama/Llama-3.1-8B)
-- [Mistral-7B-v0.3](https://huggingface.co/mistralai/Mistral-7B-v0.3)
+### Data Construction
+
+**Training Configuration:**
+```yaml
+cutoff_len: 4096
+per_device_train_batch_size: 4
+gradient_accumulation_steps: 4
+learning_rate: 1e-5
+num_train_epochs: 3.0
+lr_scheduler_type: cosine
+warmup_ratio: 0.1
+```
+
+We use DeepSpeed ZeRO-3 for distributed training. Chat templates are set according to model families:
+- `qwen` for Qwen2.5-7B
+- `llama3` for Llama-3.1-8B
+
+### Data Quality
 
 **Training Configuration:**
 ```yaml
@@ -76,9 +87,7 @@ We use DeepSpeed ZeRO-3 for distributed training. Chat templates are set accordi
 | Finance | [Finance-Instruct-500k](https://huggingface.co/datasets/Josephgflowers/Finance-Instruct-500k) | 20,000 |
 | Law | [Lawyer-Llama](https://github.com/AndrewZhe/lawyer-llama) | 20,000 |
 
-For data construction experiments, [Dolly-15k](https://huggingface.co/datasets/databricks/databricks-dolly-15k) is additionally incorporated during fine-tuning.
-
-## Evaluation
+## Evaluation config
 
 ### General Text
 
@@ -96,7 +105,6 @@ Math evaluation is performed using [Qwen2.5-Math](https://github.com/QwenLM/Qwen
 - max_tokens_per_call: 16384
 - top_p: 1
 - apply_chat_template: true
-- repetition_penalty: 1.1
 
 **Benchmarks:** GSM8K, AMC23, AIME24, Minerva Math, Gaokao2024-Mix, OlympiadBench, and MATH.
 
@@ -120,32 +128,7 @@ Law evaluation uses LegalBench and LexGLUE.
 
 Models are served using vLLM for inference in Medical, Finance and Law.
 
-## Data Quality Evaluation
-
-We evaluate whether data quality metrics can predict the downstream utility of candidate training datasets before fine-tuning, using Pearson correlation between metric scores and empirical downstream performance.
-
-**DAS (Distributional Alignment Score):** Defined as the negative MMD distance between a candidate dataset and the domain proxy dataset:
-$$
-\text{DAS}(\mathcal{D}_i) = -\text{MMD}(\mathcal{D}_{\text{proxy}}, \mathcal{D}_i)
-$$
-
-**Proxy Datasets:**
-- General: Infinity-Instruct
-- Math: ODA-Math-460k
-- Science: Logics-STEM
-- Medical: ReasonMed
-- Finance: Fin-o1
-- Law: DISC-Law-SFT
-
-**Implementation:**
-- Base models: Qwen2.5-7B, Llama-3.1-8B, Mistral-7B-v0.3
-- Embeddings: Qwen3-Embedding-8B (4096-dimensional)
-- Sampling: 5,000 instances per dataset
-- Kernel: Gaussian RBF with bandwidth $\sigma = 1.0$
-
-**Key Results:** MMD shows strong negative correlations in Math (domain avg -0.86), Medical (-0.77), Science (-0.72), and General Text (-0.68), but weaker correlations in Finance (-0.18) and Law (0.36).
-
-## Results
+## Accuracy Results
 
 ### General Text
 
@@ -257,7 +240,7 @@ $$
 
 #### Qwen2.5-7B
 
-| Method | ChemBench-multi-choise | ChemBench-str-match | gpqa_diamond | gpqa_main | mmlu | mmlu_pro | piqa | scibench-chemistry | scibench-math | scibench-physics | super_gpqa | Avg | Weighted Avg |
+| Method | ChemBench-multi-choice | ChemBench-str-match | gpqa_diamond | gpqa_main | mmlu | mmlu_pro | piqa | scibench-chemistry | scibench-math | scibench-physics | super_gpqa | Avg | Weighted Avg |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | dataflow | 43.4 | 41.0 | 24.7 | 26.3 | 67.6 | 43.0 | 70.9 | 28.6 | 41.5 | 30.4 | 20.0 | 39.8 | 39.1 |
 | infinity-instruct | 44.9 | 35.2 | 22.7 | 23.9 | 67.2 | 43.0 | 79.2 | 32.0 | 42.2 | 30.4 | 18.7 | 39.9 | 38.6 |
@@ -271,7 +254,7 @@ $$
 
 #### Llama-3.1-8B
 
-| Method | ChemBench-multi-choise | ChemBench-str-match | gpqa_diamond | gpqa_main | mmlu | mmlu_pro | piqa | scibench-chemistry | scibench-math | scibench-physics | super_gpqa | Avg | Weighted Avg |
+| Method | ChemBench-multi-choice | ChemBench-str-match | gpqa_diamond | gpqa_main | mmlu | mmlu_pro | piqa | scibench-chemistry | scibench-math | scibench-physics | super_gpqa | Avg | Weighted Avg |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | dataflow | 28.2 | 21.3 | 14.6 | 18.8 | 44.2 | 22.0 | 19.7 | 18.0 | 15.0 | 9.7 | 11.8 | 20.3 | 22.8 |
 | infinity-instruct | 37.0 | 19.7 | 15.7 | 16.1 | 49.1 | 24.9 | 37.6 | 13.9 | 14.3 | 12.8 | 11.2 | 22.9 | 25.2 |
@@ -285,7 +268,7 @@ $$
 
 #### Mistral-7B-v0.3
 
-| Method | ChemBench-multi-choise | ChemBench-str-match | gpqa_diamond | gpqa_main | mmlu | mmlu_pro | piqa | scibench-chemistry | scibench-math | scibench-physics | super_gpqa | Avg | Weighted Avg |
+| Method | ChemBench-multi-choice | ChemBench-str-match | gpqa_diamond | gpqa_main | mmlu | mmlu_pro | piqa | scibench-chemistry | scibench-math | scibench-physics | super_gpqa | Avg | Weighted Avg |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | dataflow | 32.6 | 13.5 | 9.1 | 13.6 | 44.6 | 18.7 | 42.5 | 7.1 | 8.8 | 4.4 | 12.3 | 18.9 | 23.2 |
 | infinity-instruct | 30.9 | 16.0 | 14.1 | 16.7 | 42.8 | 18.5 | 47.1 | 6.4 | 8.8 | 5.3 | 9.0 | 19.6 | 21.3 |
