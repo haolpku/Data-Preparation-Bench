@@ -11,7 +11,7 @@ from distflow.data.data_formatter import (
     AlpacaFormatter,
     ShareGptFormatter,
 )
-from distflow.data.data_loader import load_dataset
+from distflow.data.dataset import DistflowDataset
 from distflow.embed.openai_embed import OpenAIEmbed
 from distflow.mmd import MMDDistance
 from distflow.utils import logger
@@ -35,28 +35,32 @@ SIGMA_CONSTANT_VALUE = 1.0
 BIAS = True
 
 # Dataset 1 configuration
-DS1_CONFIG = {
-    "name": "oda-math",
-    "data_path": "OpenDataArena/ODA-Math-460k",
-    "data_size": 5000,
-    "split": "train",
-    "shuffle_seed": 42,
-}
-formatter1 = AlpacaFormatter(
-    user_key="question",
-    assistant_key="response",
+dataset_1 = DistflowDataset(
+    dataset_name="oda-math",
+    data_path="OpenDataArena/ODA-Math-460k",
+    load_type="datasets",
+    formatter=AlpacaFormatter(
+        user_key="question",
+        assistant_key="response",
+    ),
+    data_size=5000,
+    split="train",
+    shuffle_seed=42,
+    use_json=False,
 )
 
 # Dataset 2 configuration
-DS2_CONFIG = {
-    "name": "infinity-instruct",
-    "data_path": "BAAI/Infinity-Instruct",
-    "data_size": 5000,
-    "split": "train",
-    "shuffle_seed": 42,
-}
-formatter2 = ShareGptFormatter(
-    conversations_key="conversations",
+dataset_2 = DistflowDataset(
+    dataset_name="infinity-instruct",
+    data_path="BAAI/Infinity-Instruct",
+    load_type="datasets",
+    formatter=ShareGptFormatter(
+        conversations_key="conversations",
+    ),
+    data_size=5000,
+    split="train",
+    shuffle_seed=42,
+    use_json=False,
 )
 
 
@@ -95,29 +99,8 @@ def main() -> None:
     reset_timing()
     total_start = time.perf_counter()
 
-    # Load datasets
-    ds1_name, ds1_items = load_dataset(
-        dataset_name=DS1_CONFIG["name"],
-        data_path=DS1_CONFIG["data_path"],
-        load_type="datasets",
-        formatter=formatter1,
-        data_size=DS1_CONFIG["data_size"],
-        split=DS1_CONFIG["split"],
-        shuffle_seed=DS1_CONFIG["shuffle_seed"],
-    )
-
-    ds2_name, ds2_items = load_dataset(
-        dataset_name=DS2_CONFIG["name"],
-        data_path=DS2_CONFIG["data_path"],
-        load_type="datasets",
-        formatter=formatter2,
-        data_size=DS2_CONFIG["data_size"],
-        split=DS2_CONFIG["split"],
-        shuffle_seed=DS2_CONFIG["shuffle_seed"],
-    )
-
-    logger.info(f"Dataset 1 loaded: {ds1_name}, samples: {len(ds1_items)}")
-    logger.info(f"Dataset 2 loaded: {ds2_name}, samples: {len(ds2_items)}")
+    logger.info(f"Dataset 1 loaded: {dataset_1.name}, samples: {len(dataset_1.load())}")
+    logger.info(f"Dataset 2 loaded: {dataset_2.name}, samples: {len(dataset_2.load())}")
 
     # Initialize embedding model (vLLM OpenAI-compatible API)
     logger.info(f"Initializing embedder: {EMBEDDING_MODEL}")
@@ -140,11 +123,10 @@ def main() -> None:
     )
 
     # Compute MMD distance
-    logger.info(f"Computing MMD distance: {ds1_name} vs {ds2_name}")
-    print(f"Computing MMD distance: {ds1_name} vs {ds2_name}...")
+    logger.info(f"Computing MMD distance: {dataset_1.name} vs {dataset_2.name}")
+    print(f"Computing MMD distance: {dataset_1.name} vs {dataset_2.name}...")
 
-    results = distance.compute(ds1_items, ds2_items)
-    mmd_value = results[0].value
+    mmd_value, meta = distance.compute(dataset_1.load(), dataset_2.load())
 
     logger.info(f"MMD distance computed: {mmd_value:.6f}")
     print(f"MMD Value: {mmd_value}")
@@ -162,29 +144,30 @@ def main() -> None:
     if output_dir is not None:
         os.makedirs(output_dir, exist_ok=True)
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        safe_ds1 = ds1_name.replace("/", "_").replace(" ", "_")
-        safe_ds2 = ds2_name.replace("/", "_").replace(" ", "_")
+        safe_ds1 = dataset_1.name.replace("/", "_").replace(" ", "_")
+        safe_ds2 = dataset_2.name.replace("/", "_").replace(" ", "_")
         output_path = os.path.join(
             output_dir, f"mmd_{safe_ds1}_vs_{safe_ds2}_{timestamp}.json"
         )
 
         result_data = {
             "ds1": {
-                "name": ds1_name,
-                "data_path": DS1_CONFIG["data_path"],
-                "size": len(ds1_items),
-                "shuffle_seed": DS1_CONFIG["shuffle_seed"],
+                "name": dataset_1.name,
+                "data_path": dataset_1.data_path,
+                "size": len(dataset_1.load()),
+                "shuffle_seed": dataset_1.shuffle_seed,
             },
             "ds2": {
-                "name": ds2_name,
-                "data_path": DS2_CONFIG["data_path"],
-                "size": len(ds2_items),
-                "shuffle_seed": DS2_CONFIG["shuffle_seed"],
+                "name": dataset_2.name,
+                "data_path": dataset_2.data_path,
+                "size": len(dataset_2.load()),
+                "shuffle_seed": dataset_2.shuffle_seed,
             },
             "embedding_model": EMBEDDING_MODEL,
-            "results": [
-                {"name": r.name, "value": r.value, "meta": r.meta} for r in results
-            ],
+            "results": {
+                "value": mmd_value,
+                "meta": meta,
+            },
             "timing": {
                 "details": get_timings(),
                 "total_time": total_time,

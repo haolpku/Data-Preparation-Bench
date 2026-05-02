@@ -54,27 +54,32 @@ The example script [compute_mmd.py](./examples/compute_mmd.py) demonstrates how 
 2. **Configure the datasets** in `compute_mmd.py`:
 
    ```python
-   DS1_CONFIG = {
-       "name": "oda-math",
-       "data_path": "OpenDataArena/ODA-Math-460k",
-       "data_size": 5000,
-       "split": "train",
-       "shuffle_seed": 42,
-   }
-   formatter1 = AlpacaFormatter(
-       user_key="question",
-       assistant_key="response",
+   from distflow.data.dataset import DistflowDataset
+   from distflow.data.data_formatter import AlpacaFormatter, ShareGptFormatter
+
+   dataset_1 = DistflowDataset(
+       dataset_name="oda-math",
+       data_path="OpenDataArena/ODA-Math-460k",
+       load_type="datasets",
+       formatter=AlpacaFormatter(
+           user_key="question",
+           assistant_key="response",
+       ),
+       data_size=5000,
+       split="train",
+       shuffle_seed=42,
    )
 
-   DS2_CONFIG = {
-       "name": "infinity-instruct",
-       "data_path": "BAAI/Infinity-Instruct",
-       "data_size": 5000,
-       "split": "train",
-       "shuffle_seed": 42,
-   }
-   formatter2 = ShareGptFormatter(
-       conversations_key="conversations",
+   dataset_2 = DistflowDataset(
+       dataset_name="infinity-instruct",
+       data_path="BAAI/Infinity-Instruct",
+       load_type="datasets",
+       formatter=ShareGptFormatter(
+           conversations_key="conversations",
+       ),
+       data_size=5000,
+       split="train",
+       shuffle_seed=42,
    )
    ```
 
@@ -94,6 +99,45 @@ The example script [compute_mmd.py](./examples/compute_mmd.py) demonstrates how 
    ```bash
    uv run examples/compute_mmd.py --output results/
    ```
+
+### Running Quality Benchmark
+
+The example script [run_benchmark.py](./examples/run_benchmark.py) shows how to evaluate a custom data-quality metric by measuring its correlation with downstream task accuracy.
+
+1. **Prepare datasets** (same as above):
+
+   Define one or more `DistflowDataset` objects with the appropriate formatter.
+
+2. **Provide accuracy values manually**:
+
+   The `accuracy/` directory is not part of the repository, so you must supply your own accuracy mapping. The keys must exactly match the `dataset_name` field of each dataset:
+
+   ```python
+   accuracys = {
+       "dataflow": 0.25,
+       "infinity-instruct": 0.30,
+       "openr1": 0.45,
+   }
+   ```
+
+3. **Implement a metric class**:
+
+   Your metric class must implement `score(dataset: DistflowDataset) -> list[MetricsResult]`:
+
+   ```python
+   class MyMetric:
+       def score(self, dataset: DistflowDataset):
+           # Compute metric for the dataset
+           return [{"name": "my_metric", "value": 0.8, "meta": {}}]
+   ```
+
+4. **Run the benchmark**:
+
+   ```bash
+   uv run examples/run_benchmark.py
+   ```
+
+   The benchmark computes Pearson / Spearman correlation and a linear fit between your metric and the provided accuracies.
 
 ### Key Parameters
 
