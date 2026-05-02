@@ -1,6 +1,10 @@
 # Data Preparation Bench
 
+![main](https://datapreparationbench.github.io/assets/main.png)
 
+## Overview
+
+DataPrep-Bench is the first unified, downstream-grounded benchmark that jointly evaluates how well LLMs, agents, and data workflows can prepare training data end to end. It covers two complementary tracks: Data Construction, which transforms raw sources into SFT data, and Data Quality Evaluation, which predicts the downstream utility of candidate datasets. It also ships two strong baselines: Data-Construction-Skill for skill-driven agentic construction and the Distributional Alignment Score (DAS), a training-free, MMD-based quality estimator. Both tracks are tested under shared domains, base models, training protocols, and downstream benchmarks, so methods are compared by their actual downstream impact.
 
 ## Data Construction
 
