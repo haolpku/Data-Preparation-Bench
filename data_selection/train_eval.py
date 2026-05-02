@@ -1,5 +1,8 @@
 import argparse
 import os
+
+
+
 import yaml
 import json
 import subprocess
@@ -125,12 +128,12 @@ def _run_llamafactory(config_path, gpu_id=0):
     
     # Ensure current directory is in PYTHONPATH for custom module discovery
     env["PYTHONPATH"] = f"{os.getcwd()}:{env.get('PYTHONPATH', '')}".strip(":")
-    env_name = "bench"
-    full_cmd = ["conda", "run", "-n", env_name, "--no-capture-output"] + train_cmd
+    # env_name = "bench"
+    # full_cmd = ["conda", "run", "-n", env_name, "--no-capture-output"] + train_cmd
     print(f"🚀 Launching training: {train_cmd}")
     try:
         process = subprocess.Popen(
-            full_cmd,
+            train_cmd,
             stdout=sys.stdout,
             stderr=subprocess.STDOUT,
             shell=False,
@@ -143,7 +146,8 @@ def _run_llamafactory(config_path, gpu_id=0):
         print(f"💥 Execution failed: {e}")
         raise
 
-def run_training(train_config_path, train_files, train_config, train_exp_dir, gpu_id=0):
+def run_training(train_config_path, train_files, train_config, train_exp_dir):
+    gpu_id = os.environ.get('CUDA_VISIBLE_DEVICES', '0')
     try:
         print("Starting Training...")
         # Step 1: Register Dataset
@@ -235,28 +239,151 @@ def run_evaluation(eval_exp_dir, eval_config_path, model_name, model_save_dir):
     num_fewshot = eval_config.get("num_fewshot", 0)
     batch_size = eval_config.get("batch_size", 1)
     device = eval_config.get("device", "cuda:0")
-
+    
     model = HFLM(
         pretrained=model_name,
         peft=model_path,
         device=device,
         batch_size=batch_size,
-        trust_remote_code=True
+        trust_remote_code=True,
     )
 
-    results = evaluator.simple_evaluate(
-        model=model,
-        tasks=eval_tasks,
-        num_fewshot=num_fewshot,
-        batch_size=batch_size,
-        device=device,
-        confirm_run_unsafe_code=True,
-    )
-    custom_results = convert_lm_eval_results(results)
+    device_ids = device.split(",")
     custom_save_path = f"{eval_exp_dir}/eval_results.jsonl"
-
-    with open(custom_save_path, "a", encoding="utf-8") as f:
-        f.write(json.dumps(custom_results, ensure_ascii=False) + "\n")
+    if len(device_ids) == 1:
+        results = evaluator.simple_evaluate(
+            model=model,
+            tasks=eval_tasks,
+            num_fewshot=num_fewshot,
+            batch_size=batch_size,
+            device=device,
+            confirm_run_unsafe_code=True,
+        )
+        custom_results = convert_lm_eval_results(results)
+        with open(custom_save_path, "a", encoding="utf-8") as f:
+            f.write(json.dumps(custom_results, ensure_ascii=False) + "\n")
+    else:
+        temp_output_path = os.path.join(eval_exp_dir, "temp_results")
+        env = os.environ.copy()
+        env["CUDA_VISIBLE_DEVICES"] = device
+        env["HF_ALLOW_CODE_EVAL"] = "1"
+        model_path = str(Path(model_path).absolute())
+        model_args = f"pretrained={model_name},peft={model_path},trust_remote_code=True"
+        eval_tasks = ",".join(eval_tasks) if isinstance(eval_tasks, list) else eval_tasks
+        eval_cmd = [
+            "accelerate", "launch",
+            f"--num_processes={len(device_ids)}",
+            "--mixed_precision", "bf16",
+            "-m", "lm_eval",
+            "--model", "hf",
+            "--model_args", model_args,
+            "--tasks", eval_tasks,
+            "--batch_size", str(batch_size),
+            "--num_fewshot", str(num_fewshot),
+            "--confirm_run_unsafe_code",
+            "--output_path", custom_save_path 
+        ]
+        
+        print(f"🚀 Launching subprocess: {' '.join(eval_cmd)}")
+        try:
+            process = subprocess.Popen(
+                eval_cmd,
+                env=env,
+                stdout=sys.stdout,
+                stderr=sys.stderr
+            )
+            process.wait()
+            
+            if process.returncode != 0:
+                raise RuntimeError(f"❌ Evaluation failed with code {process.returncode}")
+            
+            result_file = os.path.join(temp_output_path, "results.json")
+            if os.path.exists(result_file):
+                with open(result_file, "r") as f:
+                    results = json.load(f)
+            
+        except Exception as e:
+            print(f"💥 Execution failed: {e}")
+            raise
+    
+def run_evaluation_with_accelerate(eval_exp_dir, eval_config_path, model_name, model_save_dir):
+    """
+    使用 accelerate launch 进行数据并行评测
+    
+    Args:
+        eval_exp_dir: 评测结果保存目录
+        eval_config_path: 评测配置文件路径
+        model_name: 模型名称或路径
+        model_save_dir: 训练好的模型保存目录（LoRA等）
+        num_gpus: 使用的GPU数量
+    """
+    with open(eval_config_path, "r", encoding="utf-8") as f:
+        eval_config = yaml.safe_load(f)
+    
+    if model_save_dir:
+        model_path = str(model_save_dir)
+    else:
+        model_path = eval_config.get("model_path", model_name)
+    
+    model_args = f"pretrained={model_name},peft={model_path}"
+    
+    if eval_config.get("model_args"):
+        model_args += f",{eval_config['model_args']}"
+    
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    output_path = eval_exp_dir / f"accelerate_results_{timestamp}.json"
+    env = os.environ.copy()
+    env["CUDA_VISIBLE_DEVICES"] = eval_config["device"]
+    num_gpus = len(eval_config["device"].split(","))
+    cmd = [
+        "accelerate", "launch",
+        f"--num_processes={num_gpus}",
+        "-m", "lm_eval",
+        "--model", "hf",
+        "--model_args", model_args,
+        "--tasks", ",".join(eval_config["tasks"]) if isinstance(eval_config["tasks"], list) else eval_config["tasks"],
+        "--batch_size", str(eval_config.get("batch_size", "auto")),
+        "--output_path", str(output_path),
+    ]
+    
+    cmd = [c for c in cmd if c]
+    
+    print(f"🚀 Running evaluation with accelerate:")
+    print(f"   Command: {' '.join(cmd)}")
+    print(f"   GPUs: {num_gpus}")
+    
+    try:
+        # 执行命令
+        result = subprocess.run(
+            cmd,
+            env=env,
+            capture_output=True,
+            text=True,
+            check=True
+        )
+        
+        print(result.stdout)
+        if result.stderr:
+            print("Stderr:", result.stderr)
+        
+        if output_path.exists():
+            with open(output_path, "r", encoding="utf-8") as f:
+                lm_eval_results = json.load(f)
+            
+            custom_results = convert_lm_eval_results(lm_eval_results)
+            custom_save_path = eval_exp_dir / "eval_results.jsonl"
+            
+            with open(custom_save_path, "a", encoding="utf-8") as f:
+                f.write(json.dumps(custom_results, ensure_ascii=False) + "\n")
+            
+            print(f"✅ Evaluation complete! Results saved to {custom_save_path}")
+            return custom_results
+        
+    except subprocess.CalledProcessError as e:
+        print(f"❌ Evaluation failed with error code {e.returncode}")
+        print(f"Stdout: {e.stdout}")
+        print(f"Stderr: {e.stderr}")
+        raise
 
 def main():
     parser = argparse.ArgumentParser(description="LLaMA-Factory One-Click Training Script")
@@ -269,7 +396,6 @@ def main():
         help="Input train files, can pass multiple files: --train_files a.jsonl b.jsonl"
     )
     parser.add_argument("--output_root", type=str, default="./output/experiments")
-    parser.add_argument("--gpu_id", default="0", help="gpu id, e.g., 0 or 0,1,2")
     parser.add_argument("--exp_id", default=None)
     args = parser.parse_args()
 
@@ -289,7 +415,7 @@ def main():
         train_exp_dir = Path(args.output_root) / exp_id / "train"
         train_exp_dir.mkdir(parents=True, exist_ok=True)   
         model_save_dir = train_exp_dir / "model"
-        run_training(args.train_config_path, args.train_files, train_config, train_exp_dir, args.gpu_id)
+        run_training(args.train_config_path, args.train_files, train_config, train_exp_dir)
 
     if args.eval_config_path is not None:
         if not exp_id:

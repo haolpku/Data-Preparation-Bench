@@ -1,18 +1,9 @@
 import os
-import re
 import json
+import re
 import math
-import glob
-import ast
-import pandas as pd
-from tqdm import tqdm
-from pathlib import Path
 
-def save_as_jsonl(data, file_path):
-    os.makedirs(os.path.dirname(file_path), exist_ok=True)
-    with open(file_path, 'w', encoding='utf-8') as f:
-        for entry in data:
-            f.write(json.dumps(entry, ensure_ascii=False) + '\n')
+from pathlib import Path
 
 def split_dataset(file_path, num_chunks, min_lines_per_chunk=100):
     p = Path(file_path)
@@ -72,3 +63,9 @@ def merge_jsonl_results(cache_dir, output_file_pattern, dataset_name):
         
         merged_paths[int(step)] = str(final_out_path.name)
     return merged_paths
+
+def save_as_jsonl(data, file_path):
+    os.makedirs(os.path.dirname(file_path), exist_ok=True)
+    with open(file_path, 'w', encoding='utf-8') as f:
+        for entry in data:
+            f.write(json.dumps(entry, ensure_ascii=False) + '\n')

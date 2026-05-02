@@ -26,7 +26,6 @@ class TaskRunner:
         logger.info(f"Running command in {cwd}: {command}")
         env = os.environ.copy()
         env["HF_ALLOW_CODE_EVAL"] = "1" 
-
         if isinstance(command, str):
             cmd_list = shlex.split(command)
         else:
@@ -70,10 +69,12 @@ class ResearchPlatform:
         self.eval_cfg = self._load_yaml(args.eval_config_path)
 
         self.timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        self.train_files = args.train_files
+ 
+        self.train_file = Path(args.train_file).absolute() 
+        assert self.train_file, f"❌ 无法定位训练文件。尝试路径为: {self.train_file}"
+
         if "args" in self.filter_cfg:
-            for key, value in self.filter_cfg["args"].items():
-                self.filter_cfg[key] = value
+            self.filter_cfg["args"]["train_file"] = self.train_file
         
         if "filter" in self.args.stage:
             self.filter_id = self._generate_filter_id()
@@ -99,7 +100,7 @@ class ResearchPlatform:
         return exp_id
 
     def _generate_filter_id(self) -> str:
-        dataset = Path(self.filter_cfg['train_file']).stem
+        dataset = Path(self.train_file).stem
         method = self.filter_cfg['method']
         return f"{method}_{dataset}_{self.timestamp}"
 
@@ -113,7 +114,10 @@ class ResearchPlatform:
         # 1. Filtering
         if "filter" in self.stage:
             logger.info("🔍 Starting data filtering stage...")
-            if not self._run_filter(): return
+            success = self._run_filter()
+            if not success:
+                logger.error("❌ Filtering stage failed! Skipping training and evaluation...")
+                return
 
         # 2. Training & Evaluation
         if any(s in self.stage for s in ["train", "eval"]):
@@ -134,7 +138,6 @@ class ResearchPlatform:
     def build_filter_command(self):
         args_list = []
         for key, value in self.filter_cfg["args"].items():
-            if key in ("train_file", "test_train_file"): value = str(Path(value).absolute())
             self.add_args(args_list, key, value)
         self.add_args(args_list, "output_root", self.filter_run_dir)
 
@@ -159,16 +162,16 @@ class ResearchPlatform:
             if os.path.exists(target_python):
                 return target_python
         
-        return f"conda run -n {env_name} --no-capture-output python"
+        return f"conda run -n {env_name} --no-capture-output"
         
     def build_train_command(self, **kwargs):
         args_list = []
         for key, value in kwargs.items():
             self.add_args(args_list, key, value)
 
-        python_exec = self.get_conda_python(self.args.env_name)
+        conda_cmd = self.get_conda_python("bench")
         cmd = (
-            f"{python_exec} train_eval.py "
+            f"{conda_cmd} python train_eval.py "
             + " ".join(args_list)
         )
         if "train" in self.args.stage:
@@ -201,10 +204,10 @@ class ResearchPlatform:
         
         log_p = self.train_and_eval_run_dir / "train_eval.log"
         if filtered_file is None or not os.path.exists(filtered_file):
-            filtered_file = self.train_files
+            filtered_file = self.train_file
         
         cmd = self.build_train_command(
-            train_files=filtered_file,
+            train_file=filtered_file,
             exp_id=str(self.train_eval_id),
         )
         return TaskRunner.run_cmd(cmd, cwd, log_p)
@@ -214,10 +217,9 @@ if __name__ == "__main__":
     parser.add_argument("--filter_config_path", default=None)
     parser.add_argument("--train_config_path", default=None)
     parser.add_argument("--eval_config_path", default=None)
-    parser.add_argument("--train_files", default=None, nargs='+',)
+    parser.add_argument("--train_file", default=None)
     parser.add_argument("--output_root", type=str, default="./output")
     parser.add_argument("--stage", default="all", help="filter, train, eval")
-    parser.add_argument("--env_name", default="bench")
     args = parser.parse_args()
     
     platform = ResearchPlatform(args)

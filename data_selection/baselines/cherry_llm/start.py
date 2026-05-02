@@ -59,6 +59,7 @@ def parse_args():
     parser.add_argument("--prompt_type", default="alpaca", choices=["alpaca"], help="Prompt 模板类型")
     parser.add_argument("--output_root", default="", required=True)
     parser.add_argument("--train_config_path", default="", required=True)
+    parser.add_argument("--gpu_id", default="0", help="gpu id, e.g., 0 or 0,1,2")
     return parser.parse_args()
 
 def main():
@@ -112,7 +113,8 @@ def main():
             f"--train_config_path {args.train_config_path} "
             f"--train_files {PRE_JSON} "
             f"--output_root {PRE_MODEL_DIR} "
-            f"--exp_id cherry_llm ",
+            f"--exp_id cherry_llm "
+            f"--gpu_id {args.gpu_id} ", 
             cwd=PROJECT_ROOT
         )
     

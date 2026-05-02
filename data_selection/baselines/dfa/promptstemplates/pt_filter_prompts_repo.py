@@ -1,3 +1,10 @@
+class FilterTargetOptimizer:
+    system_prompt_for_filter_target_optimization = """"""
+    
+    task_prompt_for_filter_target_optimization = """
+    
+"""
+
 class FilterPipelineWriter:
     system_prompt_for_write_filter_pipeline = "You are a senior data architect specializing in Data-Centric AI pipelines."
 
@@ -25,7 +32,7 @@ You need to design a 'DataFilteringPipeline' class that orchestrates multiple pr
 [TASK]
 Generate a clean, executable Python class `DataFilteringPipeline`.
 - In `__init__`: Instantiate the selected operators.
-- In `run`: Call each operator's `.run(storage.step(), ...)` method.
+- In `run`: Call each operator's `.run(storage, ...)` method.
 """
 
 class FilterPipelineInstantiate:
@@ -64,24 +71,25 @@ from dataflow.utils.storage import FileStorage
 ````
 
 ### 2\. CLASS PRESERVATION & LLM INJECTION
-
-  - **RETAIN THE CLASS**: Keep the `DataFilteringPipeline` class structure.
-  - **LLM Serving**: If any operator in the class requires `llm_serving`, initialize the `APILLMServing_request` in the `__main__` block and pass it during the class instantiation or operator setup.
-
+- **RETAIN THE CLASS**: Keep the `DataFilteringPipeline` class structure.
+- **LLM Dual-Serving Logic**:
+    - MANDATORY: Check the target and reference_operators. If an operator's api_url needs to trigger an LLM completion (like ReasoningQuestionDifficultySampleEvaluator), use a URL ending in /v1/chat/completions. Otherwise, use the base /v1/.
+    - In the __main__ block, you MUST initialize two instances if both types are needed: llm_serving_base (with {api_url}) and llm_serving_chat (with {api_url}chat/completions).
+    - Pass the specific instance to the corresponding operator's constructor within DataFilteringPipeline.__init__.
 <!-- end list -->
 
 ```python
 from dataflow.serving import APILLMServing_request
 os.environ["API_KEY"] = "{api_key}"
 llm_serving = APILLMServing_request(api_url="{api_url}", key_name_of_api_key="API_KEY")
+llm_serving_chat = APILLMServing_request(api_url="{api_url}chat/completions", key_name_of_api_key="API_KEY")
 ```
 
 ### 3\. STORAGE & LINEAGE PROTOCOL (INSIDE CLASS METHODS)
 
   - **Class Integration**: The class methods (e.g., `run`) must be designed to accept a `storage` object.
-  - **The .step() Requirement**: Inside the class methods, every time an operator's `.run()` is called, the first argument MUST be `storage.step()`. This ensures traceable data lineage for each filtering step.
   - **Independent Execution**: Within the class logic, ensure operators run independently on the `{available_keys}`. NEVER chain the output key of one operator as the input of another.
-
+  - In the `run` method of this Pipeline class, call `storage.step()` EXACTLY ONCE at the very beginning before any operator execution.  
 ### 4\. ENTRY POINT (THE IF-MAIN BLOCK)
 
   - Add a standard `if __name__ == "__main__":` block at the end of the script.
@@ -96,7 +104,19 @@ llm_serving = APILLMServing_request(api_url="{api_url}", key_name_of_api_key="AP
   - DO NOT delete or flatten the `DataFilteringPipeline` class into a top-level script.
   - DO NOT use `storage.read()` or `storage.write()`.
   - Ensure all input keys match `{available_keys}`.
-
+  - **IMPLEMENT `_safe_run` exactly as follows**:
+    1. Backup: `df_before = storage.read("dataframe")`.
+    2. Execute: `operator.run(storage, **kwargs)` followed by `storage.step()`.
+    3. Empty Handling: If `storage.read("dataframe").empty`:
+       - If `os.getenv("TEST_MODE") == "1"`: 
+         - **MANUALLY DECREMENT** the storage step: `storage.operator_step -= 1`.
+         - **RE-WRITE** the backup: `storage.write(df_before)`.
+         - **RE-STEP**: Call `storage.step()` again to re-sync the lineage.
+         - Return `True`.
+       - Otherwise: Return `False`.
+    4. Default: Return `True`.
+ - Refactor the `run` method to start with `storage.step()` once, then use `if not self._safe_run(...): return` for each operator.
+  
 # [OUTPUT]
 # Return ONLY a JSON object with a single key:
 # {{"code": "\<complete source code including class and if-main block\>"}}

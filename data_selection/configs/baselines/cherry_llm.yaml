@@ -7,3 +7,4 @@ args:
   filtered_file: "final_filtered_file.jsonl"
   model_path: "Qwen/Qwen2.5-7B-Instruct"  # 用于计算数据IFD分数的模型
   train_config_path: "configs/model/qwen2.5_lora_sft.yaml" # 模型训练配置
+  gpu_id: "3"

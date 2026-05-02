@@ -6,6 +6,7 @@ import json
 import torch
 import runpy
 import traceback
+from pathlib import Path
 from dataflow_agent.state import MainState, MainRequest
 
 from dataflow_agent.workflow import get_workflow
@@ -32,10 +33,8 @@ async def run_workflow(name: str, state):
 
 def parse_args():
     parser = argparse.ArgumentParser(description="LLM Data Filtering Workflow CLI Tool")
-    parser.add_argument("--train_file", type=str, required=True,
+    parser.add_argument("--train_file", type=str, 
                         help="Path to the full dataset to be filtered (.json or .jsonl)")
-    parser.add_argument("--test_train_file", type=str, required=True,
-                        help="Path to a small-scale sample dataset for Agent debugging")
     parser.add_argument("--dataset_name", type=str, default="my_filter_task",
                         help="Task name, determines the output directory name")
     parser.add_argument("--filtered_file", type=str, required=True)
@@ -67,13 +66,13 @@ async def run_filter_pipeline(args) -> str:
         api_key=args.api_key,
         target=args.target,
     )
-    if not os.path.exists(args.test_train_file) and not os.path.exists(args.train_file):
-        raise FileNotFoundError(f"❌ Required sample and complete files not found: {rgs.test_train_file} and {args.train_file}. "
+    if not os.path.exists(args.train_file):
+        raise FileNotFoundError(f"❌ Required sample and complete files not found: {args.train_file}. "
                                 f"Please ensure the sampling step completed successfully.")
     # Inject task configurations
     req.dataset_name = args.dataset_name
     req.real_json_file = args.train_file
-    req.json_file = args.test_train_file  # Small dataset for unit testing
+    req.json_file = process_sample(args.train_file)
     
     req.writer_target = args.writer_target
     req.need_debug = not args.no_debug
@@ -87,6 +86,51 @@ async def run_filter_pipeline(args) -> str:
     final_state: MainState = await run_workflow("filter", state)
     return final_state
     
+def parallel_exec_node_with_smart_retry(pipeline_file_path, state):
+    """主函数：智能重试版本"""
+    dataset_path = state.get("request", {}).real_json_file
+    
+    try:
+        with open(pipeline_file_path, 'r', encoding='utf-8') as f:
+            filter_code = f.read()
+    except Exception as e:
+        log.error(f"Failed to read code file: {e}")
+        return False
+    
+    num_gpus = torch.cuda.device_count() or 1
+    print(f"⚙️ 检测到 {num_gpus} 个GPU")
+    
+    for gpu_id in range(num_gpus):
+        free_bytes, total_bytes = torch.cuda.mem_get_info(gpu_id)
+        print(f"GPU {gpu_id}: 空闲 {free_bytes/1024/1024:.0f}MB / 总计 {total_bytes/1024/1024:.0f}MB")
+    
+    chunk_files = split_dataset(dataset_path, num_gpus)
+    
+    results = []
+    
+    for i, chunk_file in enumerate(chunk_files):
+        original_gpu_id = i % num_gpus
+        
+        print(f"\n📦 处理分片 {i+1}/{len(chunk_files)}")
+        
+        success = run_single_chunk_with_retry(
+            chunk_file=chunk_file,
+            filter_code=filter_code,
+            chunk_idx=i,
+            original_gpu_id=original_gpu_id,
+            max_retries=3  
+        )
+        
+        results.append(success)
+        
+        if not success:
+            print(f"⚠️ 分片 {i} 失败，继续处理下一个...")
+    
+    success_count = sum(results)
+    print(f"\n{'='*50}")
+    print(f"完成: {success_count}/{len(chunk_files)} 个分片成功")
+    
+    return success_count == len(chunk_files)
 
 def parallel_exec_node(pipeline_file_path, state):
     """Stage 2: Perform multi-GPU parallel filtering using the generated code."""
@@ -145,11 +189,23 @@ def merge_file_node(args):
         log.error(f"File merging failed: {e}")
         return None
 
+def process_sample(train_file):
+    json_file_path = Path(train_file)
+    lines = json_file_path.read_text(encoding="utf-8").splitlines()
+
+    n_sample = 100
+    out = lines[:n_sample]
+
+    sample_file = json_file_path.parent / f"{json_file_path.stem}_sample.jsonl"
+    sample_file.write_text("\n".join(out), encoding="utf-8")
+    return str(sample_file)
+
 if __name__ == "__main__":
     args = parse_args()
     os.makedirs(args.output_root, exist_ok=True)
     # Agent writes and validates code on small sample
     # We only proceed if we get a "validated" pipeline script path
+
     final_state = asyncio.run(run_filter_pipeline(args))
     # Verify execution results
     exec_res = final_state.get("execution_result", {})
@@ -160,6 +216,7 @@ if __name__ == "__main__":
         log.error("❌ Agent failed to generate executable code or validation failed.")
         exit(0)
 
+    # pipeline_file_path = "pipeline_code.py"  # For testing, we directly use the expected output path
     if pipeline_file_path:
         #  Execute large-scale parallel task
         success = parallel_exec_node(pipeline_file_path, final_state)

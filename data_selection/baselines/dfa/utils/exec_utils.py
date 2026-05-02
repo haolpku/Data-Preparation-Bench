@@ -19,39 +19,59 @@ from dataflow.utils.registry import OPERATOR_REGISTRY
 
 from utils.data_utils import save_as_jsonl
 
-def run_python_file(file_path, timeout=300):
-    env = os.environ.copy()
+def extract_traceback(stderr_text: str):
+    traceback_start = stderr_text.find("Traceback (most recent call last):")
+    
+    if traceback_start == -1:
+        return stderr_text, ""
+    
+    traceback_text = stderr_text[traceback_start:]
+    stderr = stderr_text[:traceback_start]
+    return stderr.strip(), traceback_text.strip()
+
+def run_python_file(file_path, env=None):
+    env = os.environ.copy() if env is None else env
     env["PYTHONUNBUFFERED"] = "1"  
     env["HF_ENDPOINT"] = "https://hf-mirror.com"
     
     cmd = [sys.executable, "-u", str(file_path)]
     
     all_output = []
-
+    stdout_lines = []
+    stderr_lines = []
     try:
         proc = subprocess.Popen(
             cmd,
             stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT, 
+            stderr=subprocess.PIPE,  
             text=True,
             env=env,
             bufsize=1, 
             encoding='utf-8'
         )
+        def stream_reader(pipe, container, is_stderr):
+            for line in iter(pipe.readline, ''):
+                if line:
+                    container.append(line)
+                    prefix = "[STDERR] " if is_stderr else ""
+                    print(f"{prefix}{line}", end="", flush=True)
 
-        for line in iter(proc.stdout.readline, ''):
-            if line:
-                print(line, end="", flush=True) 
-                all_output.append(line)
+        t1 = threading.Thread(target=stream_reader, args=(proc.stdout, stdout_lines, False))
+        t2 = threading.Thread(target=stream_reader, args=(proc.stderr, stderr_lines, True))
+        t1.start()
+        t2.start()
 
-        proc.wait() 
-        return proc.returncode, "".join(all_output), ""
+        proc.wait()
+        t1.join()
+        t2.join()
 
-    except subprocess.TimeoutExpired:
-        proc.kill()
-        return -1, "".join(all_output), "[Error] Timeout expired"
+        stderr_text = "".join(stderr_lines)
+        stderr_clean, stack_trace = extract_traceback(stderr_text)
+        
+        return proc.returncode, "".join(stdout_lines), stderr_clean, stack_trace
+
     except Exception as e:
-        return -2, "", f"[Internal Error] {str(e)}"
+        return -2, "", "", f"[Internal Error] {str(e)}"
 
 def create_simple_parallel_script(tasks, num_gpus: int) -> str:
     tasks_data_str = repr(tasks)

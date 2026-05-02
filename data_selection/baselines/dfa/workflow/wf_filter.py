@@ -1,10 +1,9 @@
 from __future__ import annotations
-import torch
-import runpy
+
 import os
 import json
-import traceback
-import numpy as np
+
+from urllib.parse import urljoin
 from langchain.tools import tool
 from pydantic import BaseModel, Field
 
@@ -13,15 +12,12 @@ from dataflow_agent.workflow.registry import register
 from dataflow_agent.graphbuilder.graph_builder import GenericGraphBuilder
 from dataflow_agent.toolkits.tool_manager import get_tool_manager
 from dataflow_agent.logger import get_logger
-# from dataflow_agent.toolkits.optool.op_tools import (
-#     local_tool_for_get_match_operator_code,
-# )
+
 from dataflow_agent.agentroles.data_agents.operator_qa_agent import (
     OperatorQAAgent,
     OperatorRAGService,
     create_operator_qa_agent,
 )
-# from tools.register_all import register_all_tools
 from dataflow_agent.utils import get_project_root
 
 from dataflow_agent.toolkits.basetool.file_tools import (
@@ -34,11 +30,7 @@ from common_agents.filter_pipeline_instantiator import create_llm_instantiator
 from common_agents.filter_rewriter import create_rewriter
 
 from common_agents.filter_code_debugger import create_code_debugger
-from utils import (
-    split_dataset, 
-    create_simple_parallel_script, merge_jsonl_results,
-    run_python_file
-)
+from utils import run_python_file
 
 PROJDIR = get_project_root()
 
@@ -135,7 +127,9 @@ def create_filter_graph(state: DFState):
     # ==========================================
     # 1. Shared Services & RAG Initialization
     # ==========================================
-    rag_service = OperatorRAGService(embedding_api_url=state.request.chat_api_url + "/embeddings")
+    rag_service = OperatorRAGService(
+        embedding_api_url=urljoin(state.request.chat_api_url, "embeddings")
+    )
     from dataflow_agent.graphbuilder.message_history import AdvancedMessageHistory
     shared_message_history = AdvancedMessageHistory()
     # ==========================================
@@ -452,7 +446,7 @@ def create_filter_graph(state: DFState):
 
     # ---------------- 新增：实例化节点（LLM 生成可运行入口 + 执行验证） --------
     async def instantiate_operator_main_node(s: DFState) -> DFState:
-        out_s, err_s = "", ""
+        out_s, err_s, trace_back = "", "", ""
         returncode = -1
 
         agent = create_llm_instantiator(
@@ -471,20 +465,16 @@ def create_filter_graph(state: DFState):
             log.error(f"代码文件不存在: {file_path}")
             return s2
 
-        try:
-            returncode, out_s, err_s = run_python_file(file_path)
+        env = os.environ.copy()
+        env["TEST_MODE"] = "1"  
+        returncode, out_s, err_s, trace_back = run_python_file(file_path, env=env)
 
-            s2.temp_data.setdefault("debug_runtime", {})
-            if returncode != 0:
-                s2.temp_data["debug_runtime"]["exec_error"] = f"Runtime Error: Exit code {returncode}"
-                s2.temp_data["debug_runtime"]["stack_trace"] = err_s
-            else:
-                s2.temp_data["debug_runtime"].pop("exec_error", None)
-
-        except Exception as e:
-            s2.temp_data.setdefault("debug_runtime", {})
-            s2.temp_data["debug_runtime"]["exec_error"] = f"Internal Exec Exception: {str(e)}"
-            s2.temp_data["debug_runtime"]["stack_trace"] = traceback.format_exc()
+        s2.temp_data.setdefault("debug_runtime", {})
+        if returncode != 0:
+            s2.temp_data["debug_runtime"]["exec_error"] = f"Runtime Error: Exit code {returncode}"
+            s2.temp_data["debug_runtime"]["stack_trace"] = trace_back
+        else:
+            s2.temp_data["debug_runtime"].pop("exec_error", None)
 
         exec_error = s2.temp_data.get("debug_runtime", {}).get("exec_error")
         success = (returncode == 0) and (not exec_error)
