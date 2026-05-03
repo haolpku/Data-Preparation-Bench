@@ -1,7 +1,6 @@
 from typing import Any, Literal
 
 import numpy as np
-from pydantic import BaseModel
 from scipy.spatial.distance import cdist
 
 from distflow.data.types import DatasetProcessOutputItem
@@ -9,12 +8,6 @@ from distflow.embed.base import BaseEmbed
 from distflow.utils import logger
 from distflow.utils.stats import embedding_list_summary, ndarray_summary
 from distflow.utils.timing import timing_context
-
-
-class MetricsResult(BaseModel):  # type: ignore[misc]
-    name: str
-    value: float
-    meta: dict[str, Any]
 
 
 class MMDDistance:
@@ -107,7 +100,7 @@ class MMDDistance:
 
     def compute(
         self, src: list[DatasetProcessOutputItem], tgt: list[DatasetProcessOutputItem]
-    ) -> list[MetricsResult]:
+    ) -> tuple[float, dict[str, Any]]:
         """计算两个数据集之间的距离（异步）.
 
         Args:
@@ -115,7 +108,7 @@ class MMDDistance:
             tgt: 目标数据集
 
         Returns:
-            距离计算结果列表
+            距离计算结果 (value, meta)
         """
         logger.info(f"开始嵌入计算, 源数据集: {len(src)} 条, 目标数据集: {len(tgt)} 条")
         with timing_context("嵌入计算"):
@@ -140,7 +133,7 @@ class MMDDistance:
         self,
         embedded_src: list[list[float]],
         embedded_tgt: list[list[float]],
-    ) -> list[MetricsResult]:
+    ) -> tuple[float, dict[str, Any]]:
         """计算两个嵌入向量集之间的 MMD 距离.
 
         Args:
@@ -148,7 +141,7 @@ class MMDDistance:
             embedded_tgt: 目标数据集的嵌入向量列表
 
         Returns:
-            包含 MMD 距离值的 MetricsResult 列表
+            MMD 距离值和元信息 (value, meta)
         """
         n_src = len(embedded_src)
         n_tgt = len(embedded_tgt)
@@ -213,4 +206,4 @@ class MMDDistance:
         }
 
         logger.info(f"MMD 计算完成: {mmd_value:.6f}")
-        return [MetricsResult(name="MMD", value=mmd_value, meta=meta)]
+        return mmd_value, meta
