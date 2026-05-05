@@ -43,7 +43,7 @@ The pipeline is resumable and tracks progress via `chunk_status.jsonl`, making i
 
 The underlying data-construction skill is also published as a standalone, reusable skill:
 
-- **Skill:** [data_construction_skill](./data_construction_skill/
+- **Skill:** [data_construction_skill](./data_construction_skill/)
 
 You can reference or import this skill directly in compatible agent frameworks.
 
