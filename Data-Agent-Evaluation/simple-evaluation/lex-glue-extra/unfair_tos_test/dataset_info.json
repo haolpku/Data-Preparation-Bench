@@ -1,0 +1,74 @@
+{
+  "builder_name": "parquet",
+  "citation": "",
+  "config_name": "unfair_tos",
+  "dataset_name": "lex_glue",
+  "dataset_size": 1797138,
+  "description": "",
+  "download_checksums": {
+    "hf://datasets/lex_glue@c23fdff1a6bf74e0e1a71cb86f1e781d37da888c/unfair_tos/train-00000-of-00001.parquet": {
+      "num_bytes": 500893,
+      "checksum": null
+    },
+    "hf://datasets/lex_glue@c23fdff1a6bf74e0e1a71cb86f1e781d37da888c/unfair_tos/test-00000-of-00001.parquet": {
+      "num_bytes": 146864,
+      "checksum": null
+    },
+    "hf://datasets/lex_glue@c23fdff1a6bf74e0e1a71cb86f1e781d37da888c/unfair_tos/validation-00000-of-00001.parquet": {
+      "num_bytes": 217847,
+      "checksum": null
+    }
+  },
+  "download_size": 865604,
+  "features": {
+    "text": {
+      "dtype": "string",
+      "_type": "Value"
+    },
+    "labels": {
+      "feature": {
+        "names": [
+          "Limitation of liability",
+          "Unilateral termination",
+          "Unilateral change",
+          "Content removal",
+          "Contract by using",
+          "Choice of law",
+          "Jurisdiction",
+          "Arbitration"
+        ],
+        "_type": "ClassLabel"
+      },
+      "_type": "Sequence"
+    }
+  },
+  "homepage": "",
+  "license": "",
+  "size_in_bytes": 2662742,
+  "splits": {
+    "train": {
+      "name": "train",
+      "num_bytes": 1041872,
+      "num_examples": 5532,
+      "dataset_name": "lex_glue"
+    },
+    "test": {
+      "name": "test",
+      "num_bytes": 303123,
+      "num_examples": 1607,
+      "dataset_name": "lex_glue"
+    },
+    "validation": {
+      "name": "validation",
+      "num_bytes": 452143,
+      "num_examples": 2275,
+      "dataset_name": "lex_glue"
+    }
+  },
+  "version": {
+    "version_str": "0.0.0",
+    "major": 0,
+    "minor": 0,
+    "patch": 0
+  }
+}

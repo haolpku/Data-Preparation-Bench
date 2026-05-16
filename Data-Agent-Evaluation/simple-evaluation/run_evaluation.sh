@@ -19,9 +19,9 @@ MAX_CONCURRENT="${MAX_CONCURRENT:-256}"
 JUDGE_CONCURRENCY="${JUDGE_CONCURRENCY:-8}"
 
 # Judge API settings (fill in if LLM-as-judge is needed)
-JUDGE_URL="${JUDGE_URL:-}"
-JUDGE_API_KEY="${JUDGE_API_KEY:-}"
-JUDGE_MODEL="${JUDGE_MODEL:-}"
+JUDGE_URL="${JUDGE_URL}"
+JUDGE_API_KEY="${JUDGE_API_KEY}"
+JUDGE_MODEL="${JUDGE_MODEL}"
 
 # GPU selection (default: all visible GPUs)
 CUDA_VISIBLE_DEVICES="${CUDA_VISIBLE_DEVICES:-}"
@@ -151,7 +151,7 @@ if [ -n "$CUDA_VISIBLE_DEVICES" ]; then
     export CUDA_VISIBLE_DEVICES
 fi
 
-vllm serve "$MODEL_PATH" \
+uv run --no-sync vllm serve "$MODEL_PATH" \
     --served-model-name "$MODEL_NAME" \
     --port "$VLLM_PORT" \
     --tensor-parallel-size "$TP_SIZE" \
@@ -182,7 +182,7 @@ echo "========================================"
 
 EVAL_LOG="${OUTPUT_DIR}/eval.log"
 
-uv run inference.py \
+uv run --no-sync inference.py \
     --input-jsonl "$INPUT_JSONL" \
     --output-dir "$OUTPUT_DIR" \
     --model-name "$MODEL_NAME" \
@@ -203,7 +203,7 @@ mkdir -p "$JUDGE_OUTPUT_DIR"
 
 JUDGE_LOG="${JUDGE_OUTPUT_DIR}/judge.log"
 
-uv run judge.py \
+uv run --no-sync judge.py \
     --input-jsonl "${OUTPUT_DIR}/inference_results.jsonl" \
     --output-dir "$JUDGE_OUTPUT_DIR" \
     --judge-url "$JUDGE_URL" \
@@ -219,7 +219,7 @@ echo "========================================"
 echo "Step 3: Extracting scores"
 echo "========================================"
 
-uv run extract_score.py \
+uv run --no-sync extract_score.py \
     --input "${JUDGE_OUTPUT_DIR}/judge_results.jsonl" \
     --output "${OUTPUT_DIR}/calculated_scores.json"
 

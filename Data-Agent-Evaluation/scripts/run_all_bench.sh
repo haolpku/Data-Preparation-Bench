@@ -108,7 +108,7 @@ run_general() {
     echo "[general] output: ${output_dir}"
     echo "======================================================"
 
-    mkdir -p "${output_dir}"
+    mkdir -p "${output_dir}/math"
 
     eval "$(conda shell.bash hook)"
     conda activate general

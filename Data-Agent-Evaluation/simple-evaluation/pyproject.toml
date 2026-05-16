@@ -9,4 +9,5 @@ dependencies = [
     "datasets>=4.8.5",
     "openai>=2.33.0",
     "scikit-learn>=1.8.0",
+    "vllm==0.16.0",
 ]
