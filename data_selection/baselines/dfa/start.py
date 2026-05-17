@@ -81,7 +81,7 @@ async def run_filter_pipeline(args) -> str:
     req.pipeline_file_path = args.pipeline_file_path
 
     state = MainState(messages=[], request=req)
-
+    return state
     log.info("🤖 Starting Agent workflow for code generation and validation...")
     final_state: MainState = await run_workflow("filter", state)
     return final_state
@@ -144,10 +144,11 @@ def parallel_exec_node(pipeline_file_path, state):
         return False
 
     num_gpus = torch.cuda.device_count() or 1
+    num_shards = 100
     log.info(f"⚙️ Detected {num_gpus} GPU(s). Preparing data shards...")
     
     # Shard the dataset
-    chunk_files = split_dataset(dataset_path, num_gpus)
+    chunk_files = split_dataset(dataset_path, num_shards)
     
     # Construct parallel tasks
     tasks = []
@@ -208,15 +209,15 @@ if __name__ == "__main__":
 
     final_state = asyncio.run(run_filter_pipeline(args))
     # Verify execution results
-    exec_res = final_state.get("execution_result", {})
-    if exec_res.get("success") and "file_path" in exec_res:
-        pipeline_file_path = exec_res["file_path"]
-        log.info(f"✅ Agent validation successful! Code generated at: {pipeline_file_path}")
-    else:
-        log.error("❌ Agent failed to generate executable code or validation failed.")
-        exit(0)
+    # exec_res = final_state.get("execution_result", {})
+    # if exec_res.get("success") and "file_path" in exec_res:
+    #     pipeline_file_path = exec_res["file_path"]
+    #     log.info(f"✅ Agent validation successful! Code generated at: {pipeline_file_path}")
+    # else:
+    #     log.error("❌ Agent failed to generate executable code or validation failed.")
+    #     exit(0)
 
-    # pipeline_file_path = "pipeline_code.py"  # For testing, we directly use the expected output path
+    pipeline_file_path = "pipeline_code.py"  # For testing, we directly use the expected output path
     if pipeline_file_path:
         #  Execute large-scale parallel task
         success = parallel_exec_node(pipeline_file_path, final_state)

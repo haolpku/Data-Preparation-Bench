@@ -162,7 +162,7 @@ class ResearchPlatform:
             if os.path.exists(target_python):
                 return target_python
         
-        return f"conda run -n {env_name} --no-capture-output"
+        return f"conda run -n {env_name} --no-capture-output python"
         
     def build_train_command(self, **kwargs):
         args_list = []
@@ -171,7 +171,7 @@ class ResearchPlatform:
 
         conda_cmd = self.get_conda_python("bench")
         cmd = (
-            f"{conda_cmd} python train_eval.py "
+            f"{conda_cmd} train_eval.py "
             + " ".join(args_list)
         )
         if "train" in self.args.stage:
